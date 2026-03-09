@@ -9,6 +9,7 @@ import { Dashboard } from './Dashboard.tsx'
 import { ProjectPage } from './ProjectPage.tsx'
 import { SuperAdmin } from './SuperAdmin.tsx'
 import { SubscriptionPage } from './SubscriptionPage.tsx'
+import { ResetPasswordPage } from './ResetPasswordPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/superadmin" element={<SuperAdmin />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
