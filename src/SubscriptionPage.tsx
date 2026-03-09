@@ -130,11 +130,11 @@ function SubscriptionContent() {
         <div>
           <p
             onClick={() => window.location.href = '/dashboard'}
-            style={{ color: 'rgba(255,255,255,0.5)', cursor: 'pointer', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}
+            style={{ color: 'rgba(255,255,255,0.5)', cursor: 'pointer', margin: '0 0 0.5rem 0', fontSize: '0.8rem' }}
           >
             ← Back to Dashboard
           </p>
-          <h1 style={{ margin: 0 }}>💳 Subscription</h1>
+          <h1 style={{ margin: 0, fontSize: '1.8rem' }}>💳 Subscription</h1>
         </div>
         <WalletMultiButton />
       </div>
@@ -180,20 +180,20 @@ function SubscriptionContent() {
         border: '1px solid rgba(255,255,255,0.1)',
         textAlign: 'center'
       }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
-        <h2 style={{ margin: '0 0 0.5rem 0' }}>Starter Plan</h2>
-        <div style={{ fontSize: '3rem', fontWeight: '800', margin: '1rem 0' }}>
+        <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>🚀</div>
+        <h2 style={{ margin: '0 0 1rem 0' }}>Starter Plan</h2>
+        <div style={{ fontSize: '2rem', fontWeight: '800', margin: '1rem 0' }}>
           $99<span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)' }}>/month</span>
         </div>
 
         {solPrice > 0 && (
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', marginBottom: '2rem' }}>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', marginBottom: '2rem' }}>
             ≈ {solAmount} SOL at current price
           </p>
         )}
 
         {/* Features */}
-        <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
+        <div style={{ textAlign: 'left', marginBottom: '2.5rem' }}>
           {[
             '✅ Up to 2 active projects',
             '✅ Up to 100 recipients',
@@ -201,17 +201,42 @@ function SubscriptionContent() {
             '✅ Recipient claim portal',
             '✅ Email support (48hr)',
             '✅ Network fees paid by your wallet',
-            '✅ No percentage cut on tokens',
           ].map(feature => (
             <div key={feature} style={{
               padding: '0.5rem 0',
               borderBottom: '1px solid rgba(255,255,255,0.05)',
-              fontSize: '0.9rem'
+              fontSize: '1rem'
             }}>
               {feature}
             </div>
           ))}
+          <div style={{
+            padding: '0.5rem 0',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            fontSize: '0.9rem',
+            fontWeight: '700',
+          }}>
+            <span>✅ </span>
+            <span style={{ 
+              background: 'linear-gradient(90deg, #9945FF, #14F195, #00C2FF, #9945FF, #14F195, #9945FF)',
+              backgroundSize: '300% 100%',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              animation: 'chromatic 12s linear infinite',
+              filter: 'drop-shadow(0 0 0.5px rgba(153,69,255,0.7))',
+          }}>
+            No percentage cut on tokens
+          </span>
+          </div>
         </div>
+
+        <style>{`
+          @keyframes chromatic {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+          }
+        `}</style>
 
         {status && (
           <p style={{

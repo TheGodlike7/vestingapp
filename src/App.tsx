@@ -80,7 +80,7 @@ function ClaimPage() {
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div>
-          <h1 style={{ margin: 0 }}>🔓 VestingApp</h1>
+          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>🔓 VestingApp</h1>
           <p style={{ margin: '0.25rem 0 0 0', color: 'rgba(255,255,255,0.5)' }}>
             Claim your vested tokens
           </p>
@@ -99,7 +99,7 @@ function ClaimPage() {
           <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>👛</div>
           <h2>Connect Your Wallet</h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '2rem' }}>
-            Connect your Phantom wallet to see your vesting schedules
+            Connect your Solana wallet to see your vesting schedules
           </p>
           <WalletMultiButton />
         </div>
