@@ -352,7 +352,6 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* Modal */}
       {showCreateModal && (
         <CreateProjectModal
           userId={user.id}
