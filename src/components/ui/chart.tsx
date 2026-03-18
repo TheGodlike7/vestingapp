@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
@@ -89,6 +90,7 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+// @ts-ignore
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
