@@ -13,12 +13,11 @@ export default function CtaSection() {
             <span className="text-xs font-semibold text-[hsl(var(--primary))] uppercase tracking-widest">Launch Today</span>
           </div>
           <h2 className="font-display text-5xl md:text-6xl font-extrabold text-foreground mb-6 tracking-tight leading-tight">
-            Ready to vest{" "}
-            <span className="shimmer-text">on Solana?</span>
+            Ready to vest on Solana?
           </h2>
           <p className="text-muted-foreground text-lg font-body leading-relaxed mb-12">
             Join protocols already using VestingApp to manage their locked tokens.
-            Deploy your first schedule in minutes—no code required.
+            Deploy your first schedule in minutes, no code required.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
             <button
@@ -36,20 +35,18 @@ export default function CtaSection() {
             </button>
           </div>
           <div className="flex justify-center items-center gap-6">
-            {[
-              { icon: Twitter,       label: "Twitter",  href: "https://twitter.com" },
-              { icon: Github,        label: "GitHub",   href: "https://github.com/TheGodlike7/vestingapp" },
-              { icon: MessageCircle, label: "Discord",  href: "#" },
-            ].map(({ icon: Icon, label, href }) => (
-              
-                key={label}
-                href={href}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium group"
-              >
-                <Icon className="w-4 h-4 group-hover:text-[hsl(var(--primary))] transition-colors" />
-                {label}
-              </a>
-            ))}
+            <a href="https://twitter.com" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium group">
+              <Twitter className="w-4 h-4 group-hover:text-[hsl(var(--primary))] transition-colors" />
+              Twitter
+            </a>
+            <a href="https://github.com/TheGodlike7/vestingapp" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium group">
+              <Github className="w-4 h-4 group-hover:text-[hsl(var(--primary))] transition-colors" />
+              GitHub
+            </a>
+            <a href="#" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium group">
+              <MessageCircle className="w-4 h-4 group-hover:text-[hsl(var(--primary))] transition-colors" />
+              Discord
+            </a>
           </div>
         </div>
       </div>

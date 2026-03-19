@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletContextProvider } from './WalletProvider';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import './AdminPanel.css';
 
 interface VestingScheduleForm {
   beneficiary: string;
