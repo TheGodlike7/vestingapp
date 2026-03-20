@@ -15,7 +15,7 @@ const badges = [
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-24 pb-16">
+    <section className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden pt-24 pb-16">
       {/* Video background */}
       <video
         autoPlay
@@ -69,11 +69,11 @@ export default function HeroSection() {
           </button>
         </div>
 
-        <div className="glass-card rounded-2xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6 animate-fade-up animation-delay-500">
+        <div className="glass-card rounded-2xl p-4 md:p-6 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 animate-fade-up animation-delay-500">
           {stats.map(({ label, value, color }) => (
             <div key={label} className="flex flex-col items-center gap-1">
-              <span className={`font-display text-2xl md:text-3xl font-extrabold ${color}`}>{value}</span>
-              <span className="text-muted-foreground text-xs font-medium uppercase tracking-widest">{label}</span>
+              <span className={`font-display text-lg md:text-3xl font-extrabold ${color}`}>{value}</span>
+              <span className="text-muted-foreground text-[10px] md:text-xs font-medium uppercase tracking-widest">{label}</span>
             </div>
           ))}
         </div>

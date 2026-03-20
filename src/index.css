@@ -272,6 +272,43 @@
     border-color: rgba(139,92,246,0.5);
     box-shadow: 0 4px 16px rgba(99,102,241,0.2);
   }
+
+  @media (hover: none) {
+  .glass-card:active {
+    border-color: hsl(271 100% 64% / 0.25);
+    box-shadow: var(--shadow-purple), var(--shadow-card);
+    transform: scale(0.98);
+    transition: all 0.15s ease;
+  }
+
+  .stat-card:active {
+    transform: scale(0.96);
+    box-shadow: 0 12px 40px rgba(99,102,241,0.3);
+    border-color: rgba(139,92,246,0.6);
+    background: rgba(99,102,241,0.12);
+    transition: all 0.15s ease;
+  }
+
+  .project-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 8px 30px rgba(99,102,241,0.25);
+    border-color: rgba(139,92,246,0.5);
+    transition: all 0.15s ease;
+  }
+
+  .btn-accent:active {
+    transform: scale(0.96);
+    box-shadow: 0 0 30px hsl(157 87% 51% / 0.6);
+    transition: all 0.15s ease;
+  }
+
+  .btn-outline:active {
+    border-color: hsl(271 100% 64%);
+    background: hsl(271 100% 64% / 0.1);
+    transition: all 0.15s ease;
+  }
+  }
+  
 }
 
 @layer utilities {
