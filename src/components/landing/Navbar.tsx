@@ -54,21 +54,21 @@ export default function Navbar() {
         </button>
       </nav>
       {mobileOpen && (
-        <div className="md:hidden glass-card mx-4 mt-2 rounded-xl p-4 border border-[hsl(265_40%_20%/0.6)]">
-          <ul className="flex flex-col gap-1 mb-4">
+        <div className="md:hidden mx-4 mt-1 rounded-xl border border-[hsl(265_40%_20%/0.8)] bg-[hsl(275_68%_5%/0.98)] backdrop-blur-xl shadow-2xl">
+          <ul className="flex flex-col gap-0.5 p-2 mb-0">
             {navLinks.map((link) => (
               <li key={link.label}>
-                <a href={link.href} onClick={() => setMobileOpen(false)} className="block px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(265_44%_15%/0.6)] transition-all">
+                <a href={link.href} onClick={() => setMobileOpen(false)} className="block px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[hsl(265_44%_15%/0.6)] transition-all">
                   {link.label}
                 </a>
               </li>
             ))}
           </ul>
-          <div className="flex flex-col gap-2">
-            <button onClick={() => window.location.href = '/login'} className="btn-outline w-full py-2.5 rounded-lg text-sm font-semibold">
+          <div className="flex flex-col gap-2 p-2 pt-0 border-t border-[hsl(265_40%_20%/0.5)] mt-1">
+            <button onClick={() => window.location.href = '/login'} className="btn-outline w-full py-2 rounded-lg text-sm font-semibold">
               Sign In
             </button>
-            <button onClick={() => window.location.href = '/login'} className="btn-accent w-full py-2.5 rounded-lg text-sm font-bold">
+            <button onClick={() => window.location.href = '/login'} className="btn-accent w-full py-2 rounded-lg text-sm font-bold">
               Get Started
             </button>
           </div>
