@@ -6,6 +6,7 @@ const navLinks = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
   { label: "Docs", href: "#docs" },
+  { label: "Claim Tokens", href: "/claim" },
 ];
 
 export default function Navbar() {
