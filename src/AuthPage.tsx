@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import { Zap } from 'lucide-react'
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login')
@@ -40,154 +41,150 @@ export function AuthPage() {
     setLoading(false)
   }
 
-  const inputStyle = {
-    width: '100%',
-    padding: '0.75rem',
-    borderRadius: '8px',
-    border: '1px solid rgba(255,255,255,0.2)',
-    background: 'rgba(255,255,255,0.05)',
-    color: 'white',
-    fontSize: '1rem',
-    boxSizing: 'border-box' as const
-  }
-
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)'
-    }}>
-      <div style={{
-        background: 'rgba(255,255,255,0.05)',
-        padding: '2.5rem',
-        borderRadius: '16px',
-        width: '100%',
-        maxWidth: '420px',
-        border: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <h1 style={{ color: 'white', textAlign: 'center', marginBottom: '0.5rem' }}>
-          🔐 VestingApp
-        </h1>
-        <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: '2rem' }}>
-          {mode === 'login' ? 'Welcome back' : mode === 'signup' ? 'Create your account' : 'Reset your password'}
-        </p>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{ background: 'var(--gradient-hero)' }}>
 
-        <form onSubmit={handleSubmit}>
-          {mode === 'signup' && (
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '0.5rem' }}>
-                Company Name
+      {/* Background effects */}
+      <div className="absolute inset-0 mesh-bg opacity-30" />
+      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[hsl(271_100%_64%/0.15)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[300px] h-[300px] bg-[hsl(157_87%_51%/0.08)] rounded-full blur-[80px] pointer-events-none" />
+
+      {/* Back to home */}
+      <a href="/" className="absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+        ← Back to Home
+      </a>
+
+      <div className="relative z-10 w-full max-w-md mx-auto px-4">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <a href="/" className="flex items-center gap-2.5 mb-4">
+            <div className="relative w-10 h-10">
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] blur-md opacity-50" />
+              <Zap className="absolute inset-0 m-auto w-5 h-5 text-white" />
+            </div>
+            <span className="font-display font-bold text-2xl tracking-tight text-foreground">
+              Vesting<span className="gradient-text">App</span>
+            </span>
+          </a>
+          <h2 className="font-display text-xl font-semibold text-foreground">
+            {mode === 'login' ? 'Welcome back' : mode === 'signup' ? 'Create your account' : 'Reset your password'}
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            {mode === 'login' ? 'Sign in to manage your vesting schedules' : mode === 'signup' ? 'Start managing token vesting on Solana' : 'Enter your email to receive a reset link'}
+          </p>
+        </div>
+
+        {/* Card */}
+        <div className="glass-card rounded-2xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Company / Project Name
+                </label>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={e => setCompanyName(e.target.value)}
+                  placeholder="Your company or project name"
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-[hsl(265_40%_20%)] bg-[hsl(265_44%_15%/0.5)] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Email
               </label>
               <input
-                type="text"
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                placeholder="Your company or project name"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@company.com"
                 required
-                style={inputStyle}
+                className="w-full px-4 py-3 rounded-xl border border-[hsl(265_40%_20%)] bg-[hsl(265_44%_15%/0.5)] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all"
               />
             </div>
-          )}
 
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '0.5rem' }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              required
-              style={inputStyle}
-            />
-          </div>
+            {mode !== 'forgot' && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-[hsl(265_40%_20%)] bg-[hsl(265_44%_15%/0.5)] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[hsl(var(--primary))] focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all"
+                />
+              </div>
+            )}
 
-          {mode !== 'forgot' && (
-            <div style={{ marginBottom: '0.5rem' }}>
-              <label style={{ color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: '0.5rem' }}>
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Min 6 characters"
-                required
-                style={inputStyle}
-              />
-            </div>
-          )}
+            {mode === 'login' && (
+              <div className="flex justify-end">
+                <span
+                  onClick={() => { setMode('forgot'); setMessage('') }}
+                  className="text-sm text-[hsl(var(--primary))] cursor-pointer hover:underline"
+                >
+                  Forgot password?
+                </span>
+              </div>
+            )}
 
-          {mode === 'login' && (
-            <div style={{ textAlign: 'right', marginBottom: '1.5rem' }}>
-              <span
-                onClick={() => { setMode('forgot'); setMessage('') }}
-                style={{ color: '#8b5cf6', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                Forgot password?
-              </span>
-            </div>
-          )}
+            {message && (
+              <div className={`px-4 py-3 rounded-xl text-sm text-center ${
+                message.includes('✅') || (!message.toLowerCase().includes('error') && !message.toLowerCase().includes('invalid'))
+                  ? 'bg-[hsl(157_87%_51%/0.1)] border border-[hsl(157_87%_51%/0.3)] text-[hsl(var(--accent))]'
+                  : 'bg-[hsl(0_84%_60%/0.1)] border border-[hsl(0_84%_60%/0.3)] text-[hsl(0_84%_60%)]'
+              }`}>
+                {message}
+              </div>
+            )}
 
-          {mode !== 'login' && <div style={{ marginBottom: '1.5rem' }} />}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl font-bold text-base transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: loading ? 'rgba(99,102,241,0.5)' : 'var(--gradient-primary)',
+                color: 'white',
+                boxShadow: loading ? 'none' : '0 0 20px hsl(271 100% 64% / 0.3)'
+              }}
+            >
+              {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Email'}
+            </button>
+          </form>
 
-          {message && (
-            <p style={{
-              color: message.includes('✅') ? '#51cf66' : message.toLowerCase().includes('error') || message.toLowerCase().includes('invalid') ? '#ff6b6b' : '#51cf66',
-              marginBottom: '1rem',
-              textAlign: 'center',
-              fontSize: '0.9rem'
-            }}>
-              {message}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '0.875rem',
-              borderRadius: '8px',
-              border: 'none',
-              background: loading ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: 'white',
-              fontSize: '1rem',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Email'}
-          </button>
-        </form>
-
-        <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: '1.5rem' }}>
-          {mode === 'forgot' ? (
-            <>
-              Remember it?{' '}
-              <span onClick={() => { setMode('login'); setMessage('') }} style={{ color: '#8b5cf6', cursor: 'pointer', fontWeight: '600' }}>
-                Sign In
-              </span>
-            </>
-          ) : mode === 'login' ? (
-            <>
-              Don't have an account?{' '}
-              <span onClick={() => { setMode('signup'); setMessage('') }} style={{ color: '#8b5cf6', cursor: 'pointer', fontWeight: '600' }}>
-                Sign Up
-              </span>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <span onClick={() => { setMode('login'); setMessage('') }} style={{ color: '#8b5cf6', cursor: 'pointer', fontWeight: '600' }}>
-                Sign In
-              </span>
-            </>
-          )}
-        </p>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            {mode === 'forgot' ? (
+              <>
+                Remember it?{' '}
+                <span onClick={() => { setMode('login'); setMessage('') }} className="text-[hsl(var(--primary))] cursor-pointer font-semibold hover:underline">
+                  Sign In
+                </span>
+              </>
+            ) : mode === 'login' ? (
+              <>
+                Don't have an account?{' '}
+                <span onClick={() => { setMode('signup'); setMessage('') }} className="text-[hsl(var(--primary))] cursor-pointer font-semibold hover:underline">
+                  Sign Up
+                </span>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <span onClick={() => { setMode('login'); setMessage('') }} className="text-[hsl(var(--primary))] cursor-pointer font-semibold hover:underline">
+                  Sign In
+                </span>
+              </>
+            )}
+          </p>
+        </div>
       </div>
     </div>
   )

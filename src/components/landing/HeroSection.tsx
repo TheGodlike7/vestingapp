@@ -1,10 +1,10 @@
 import { ArrowRight, Shield, Zap, Users } from "lucide-react";
 
 const stats = [
-  { label: "TVL Locked",     value: "$2.4B+",  color: "text-[hsl(var(--accent))]"   },
-  { label: "Protocols",      value: "340+",    color: "text-[hsl(var(--primary))]"  },
-  { label: "Tokens Vested",  value: "18.7M+",  color: "text-[hsl(var(--accent))]"   },
-  { label: "Uptime",         value: "99.99%",  color: "text-[hsl(var(--primary))]"  },
+  { label: "Non-Custodial",    value: "100%",    color: "text-[hsl(var(--accent))]"  },
+  { label: "Solana-Native",    value: "⚡",       color: "text-[hsl(var(--primary))]" },
+  { label: "Flat Monthly Fee", value: "$99",     color: "text-[hsl(var(--accent))]"  },
+  { label: "Uptime",           value: "99.99%",  color: "text-[hsl(var(--primary))]" },
 ];
 
 const badges = [
@@ -49,13 +49,13 @@ export default function HeroSection() {
           ))}
         </div>
 
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold leading-[0.95] tracking-tighter mb-6 animate-fade-up animation-delay-200">
+        <h1 className="font-display text-4xl md:text-[4xl] lg:text-5xl font-extrabold leading-[1.1] tracking-tighter mb-6 animate-fade-up animation-delay-200">
           <span className="block text-foreground">Token Vesting</span>
           <span className="block shimmer-text mt-1">Reimagined</span>
-          <span className="block text-foreground text-4xl md:text-5xl lg:text-6xl mt-2 font-semibold">for Solana</span>
+          <span className="block text-foreground text-4xl md:text-[4.5xl] lg:text-5xl mt-2 font-bold">for Solana</span>
         </h1>
 
-        <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10 animate-fade-up animation-delay-300 font-body">
+        <p className="text-muted-foreground text-lg md:text-[1xl] max-w-2xl mx-auto leading-relaxed mb-10 animate-fade-up animation-delay-300 font-body">
           Deploy bulletproof token vesting schedules on Solana in minutes. Trusted by leading DAOs, launchpads, and protocols worldwide.
         </p>
 
