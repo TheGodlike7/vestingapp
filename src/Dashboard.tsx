@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import { CreateProjectModal } from './CreateProjectModal'
 import { useSubscription } from './useSubscription'
 import { Zap, FolderOpen, Calendar, Users, Lock, ChevronDown, CreditCard, KeyRound, LogOut } from 'lucide-react'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -65,9 +66,11 @@ export function Dashboard() {
             </span>
           </a>
 
+          <div className="flex items-center gap-3">
+          <ThemeToggle />
           <div className="relative">
-            <button
-              onClick={() => setShowProfileMenu(prev => !prev)}
+          <button
+            onClick={() => setShowProfileMenu(prev => !prev)}
               className="flex items-center gap-2 px-3 py-2 rounded-full border border-[hsl(265_40%_20%)] bg-[hsl(265_44%_15%/0.5)] text-foreground hover:border-[hsl(var(--primary))] transition-all text-sm"
             >
               <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ background: 'var(--gradient-primary)' }}>
@@ -214,6 +217,7 @@ export function Dashboard() {
           onSuccess={() => fetchProjects(user.id)}
         />
       )}
+    </div>
     </div>
   )
 }

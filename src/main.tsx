@@ -11,9 +11,11 @@ import { ProjectPage } from './ProjectPage.tsx'
 import { SuperAdmin } from './SuperAdmin.tsx'
 import { SubscriptionPage } from './SubscriptionPage.tsx'
 import { ResetPasswordPage } from './ResetPasswordPage.tsx'
+import { ThemeProvider } from './ThemeContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <ThemeProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
@@ -27,5 +29,6 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   </StrictMode>,
 )// force rebuild
