@@ -1,4 +1,6 @@
 {
+  "$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json",
+  "nodeModulesDir": true,
   "imports": {
     "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
   }

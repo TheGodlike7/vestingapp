@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import { useSubscription } from './useSubscription'
 
 interface Props {
   userId: string
@@ -14,8 +15,18 @@ export function CreateProjectModal({ userId, onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
+  // ✅ Step 2.1: subscription hook
+  const { canCreate } = useSubscription(userId)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // ✅ Step 2.2: enforcement (CRITICAL)
+    if (!canCreate) {
+      setMessage('Subscription required to create projects')
+      return
+    }
+
     setLoading(true)
     setMessage('')
 

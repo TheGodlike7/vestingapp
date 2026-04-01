@@ -1,37 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from './supabase'
 import { Zap, Users, FolderOpen, Calendar, CheckCircle, LogOut, ShieldAlert } from 'lucide-react'
 import { ThemeToggle } from './ThemeToggle'
- 
+
+type Owner = {
+  id: string
+  email: string
+  company_name: string | null
+  plan: string
+  is_active: boolean
+  is_super_admin: boolean
+  created_at: string
+}
+
+type AuthUser = {
+  id: string
+}
+
 export function SuperAdmin() {
-  const [, setUser] = useState<any>(null)
-  const [owners, setOwners] = useState<any[]>([])
+  const [, setUser] = useState<AuthUser | null>(null)
+  const [owners, setOwners] = useState<Owner[]>([])
   const [stats, setStats] = useState({ totalOwners: 0, totalProjects: 0, totalSchedules: 0, activeSchedules: 0 })
   const [loading, setLoading] = useState(true)
   const [unauthorized, setUnauthorized] = useState(false)
- 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { window.location.href = '/login'; return }
-      checkSuperAdmin(session.user)
-    })
-  }, [])
- 
-  const checkSuperAdmin = async (authUser: any) => {
-    const { data } = await supabase.from('project_owners').select('*').eq('id', authUser.id).single()
-    if (!data?.is_super_admin) { setUnauthorized(true); setLoading(false); return }
-    setUser(authUser)
-    fetchOwners()
-    fetchStats()
-    setLoading(false)
-  }
- 
-  const fetchOwners = async () => {
+ const fetchOwners = useCallback(async () => {
     const { data } = await supabase.from('project_owners').select('*').order('created_at', { ascending: false })
     if (data) setOwners(data)
-  }
+  }, [])
  
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     const [ownersRes, projectsRes, schedulesRes, activeRes] = await Promise.all([
       supabase.from('project_owners').select('id', { count: 'exact' }),
       supabase.from('vesting_projects').select('id', { count: 'exact' }),
@@ -44,7 +41,43 @@ export function SuperAdmin() {
       totalSchedules: schedulesRes.count || 0,
       activeSchedules: activeRes.count || 0
     })
+  }, [])
+
+  const checkSuperAdmin = useCallback(async (authUser: AuthUser) => {
+    const { data } = await supabase
+    .from('project_owners')
+    .select('*')
+    .eq('id', authUser.id)
+    .single()
+
+    if (!data?.is_super_admin) {
+      setUnauthorized(true)
+       setLoading(false)
+        return 
+      }
+    setUser(authUser)
+
+   await fetchOwners()
+  await fetchStats()
+    setLoading(false)
+  }, [fetchOwners, fetchStats])
+
+  useEffect(() => {
+  const run = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (!session) {
+      window.location.href = '/login'
+      return
+    }
+
+    await checkSuperAdmin(session.user)
   }
+
+  run()
+}, [checkSuperAdmin])
+ 
+  
  
   const toggleActive = async (ownerId: string, currentStatus: boolean) => {
     await supabase.from('project_owners').update({ is_active: !currentStatus }).eq('id', ownerId)

@@ -18,7 +18,7 @@ export async function getWalletFromDB(address: string): Promise<WalletData | nul
   }
 }
 
-export async function getWalletLive(address: string): Promise<any> {
+export async function getWalletLive(address: string): Promise<unknown> {
   try {
     const response = await fetch(`${API_BASE_URL}/wallet/${address}/live`);
     if (!response.ok) return null;

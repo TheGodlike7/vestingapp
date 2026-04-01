@@ -1,36 +1,78 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from './supabase'
 import { CreateScheduleModal } from './CreateScheduleModal'
+import { useSubscription } from './useSubscription'
 import { Zap, ArrowLeft, Calendar, Users, Lock, CheckCircle, Plus, Inbox } from 'lucide-react'
 import { ThemeToggle } from './ThemeToggle'
+import type { User } from '@supabase/supabase-js'
  
+type Project = {
+  id: string
+  project_name: string
+  token_symbol: string
+  token_mint: string
+}
+
+type Schedule = {
+  id: string
+  recipient_wallet: string
+  total_amount: number
+  schedule_type: string | null
+  duration_months: number
+  cliff_months: number | null
+  is_active: boolean | null
+}
+
 export function ProjectPage() {
   const { projectId } = useParams()
-  const [project, setProject] = useState<any>(null)
-  const [schedules, setSchedules] = useState<any[]>([])
+
+  // ✅ FIX: add user state
+  const [user, setUser] = useState<User | null>(null)
+
+  // ✅ Step 2 hook usage
+  const { canCreate } = useSubscription(user?.id || null)
+
+  const [project, setProject] = useState<Project | null>(null)
+  const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  
+  const fetchProject = useCallback(async () => {
+    const { data } = await supabase
+      .from('vesting_projects')
+      .select('*')
+      .eq('id', projectId)
+      .single()
+
+    if (data) setProject(data)
+    setLoading(false)
+  }, [projectId])
  
+  const fetchSchedules = useCallback(async () => {
+    const { data } = await supabase
+      .from('vesting_schedules')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+
+    if (data) setSchedules(data)
+  }, [projectId])
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { window.location.href = '/login'; return }
+      if (!session) {
+        window.location.href = '/login'
+        return
+      }
+
+      // ✅ set user for subscription hook
+      setUser(session.user)
+
       fetchProject()
       fetchSchedules()
     })
-  }, [])
- 
-  const fetchProject = async () => {
-    const { data } = await supabase.from('vesting_projects').select('*').eq('id', projectId).single()
-    if (data) setProject(data)
-    setLoading(false)
-  }
- 
-  const fetchSchedules = async () => {
-    const { data } = await supabase.from('vesting_schedules').select('*')
-      .eq('project_id', projectId).order('created_at', { ascending: false })
-    if (data) setSchedules(data)
-  }
+  }, [fetchProject, fetchSchedules])
  
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--gradient-hero)' }}>
@@ -66,10 +108,17 @@ export function ProjectPage() {
               </span>
             </a>
           </div>
+
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                if (!canCreate) {
+                  window.location.href = '/subscription'
+                } else {
+                  setShowCreateModal(true)
+                }
+              }}
               className="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
             >
               <Plus className="w-4 h-4" />
@@ -117,8 +166,15 @@ export function ProjectPage() {
               <h2 className="font-display text-lg font-semibold text-foreground">Vesting Schedules</h2>
               <p className="text-muted-foreground text-xs mt-0.5">{schedules.length} schedule{schedules.length !== 1 ? 's' : ''}</p>
             </div>
+
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                if (!canCreate) {
+                  window.location.href = '/subscription'
+                } else {
+                  setShowCreateModal(true)
+                }
+              }}
               className="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
             >
               <Plus className="w-4 h-4" />
@@ -148,7 +204,7 @@ export function ProjectPage() {
                       </p>
                       <p className="text-muted-foreground text-xs truncate">
                         {schedule.total_amount} {project?.token_symbol} • {schedule.schedule_type} • {schedule.duration_months}mo
-                        {schedule.cliff_months > 0 && ` • ${schedule.cliff_months}mo cliff`}
+                        {(schedule.cliff_months ?? 0) > 0 && ` • ${schedule.cliff_months}mo cliff`}
                       </p>
                     </div>
                   </div>
@@ -171,8 +227,7 @@ export function ProjectPage() {
           projectId={projectId!}
           tokenSymbol={project.token_symbol}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => fetchSchedules()}
-        />
+          onSuccess={() => fetchSchedules()} userId={''}        />
       )}
     </div>
   )

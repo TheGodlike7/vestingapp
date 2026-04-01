@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { supabase } from './supabase'
+import { useSubscription } from './useSubscription'
 
 interface Props {
   projectId: string
   tokenSymbol: string
+  userId: string
   onClose: () => void
   onSuccess: () => void
 }
 
-export function CreateScheduleModal({ projectId, tokenSymbol, onClose, onSuccess }: Props) {
+export function CreateScheduleModal({ userId,projectId, tokenSymbol, onClose, onSuccess }: Props) {
   const [recipientWallet, setRecipientWallet] = useState('')
   const [totalAmount, setTotalAmount] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -17,6 +19,9 @@ export function CreateScheduleModal({ projectId, tokenSymbol, onClose, onSuccess
   const [scheduleType, setScheduleType] = useState('linear')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+
+  // ✅ Step 2.1: subscription hook
+    const { canCreate } = useSubscription(userId)
 
   const applyTemplate = (template: string) => {
     switch(template) {
@@ -47,6 +52,12 @@ export function CreateScheduleModal({ projectId, tokenSymbol, onClose, onSuccess
     e.preventDefault()
     setLoading(true)
     setMessage('')
+
+    // ✅ Step 2.2: enforcement (CRITICAL)
+    if (!canCreate) {
+      setMessage('Subscription required to create projects')
+      return
+    }
 
     const { error } = await supabase.from('vesting_schedules').insert({
       project_id: projectId,

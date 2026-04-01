@@ -1,4 +1,4 @@
-/// <reference lib="deno.window" />
+/// <reference types="https://deno.land/x/edge_runtime@v1.36.0/index.d.ts" />
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -6,11 +6,19 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const BUSINESS_WALLET = Deno.env.get('BUSINESS_WALLET')!
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 const REQUIRED_AMOUNT = 99 * 1_000_000 // 99 USDC in micro-units
+const HELIUS_SECRET = Deno.env.get('HELIUS_WEBHOOK_SECRET')!
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   try {
     const body = await req.json()
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const signature = req.headers.get("authorization")
+
+    if (!signature || signature !== HELIUS_SECRET) {
+  return new Response("Unauthorized", { status: 401 })
+}
+    if (!tx.signature || !tx.tokenTransfers) continue
+    if (transfer.tokenAmount < REQUIRED_AMOUNT) continue
 
     // Helius sends an array of transactions
     for (const tx of body) {
@@ -28,7 +36,7 @@ Deno.serve(async (req) => {
         if (isUSDC && isToUs && isEnough) {
           // Extract user ID from memo
           // memo format: vestingapp-starter-USERID
-          const memoMatch = memo.match(/vestingapp-starter-([a-zA-Z0-9]+)/)
+          const memoMatch = memo.match(/^vestingapp-starter-([a-zA-Z0-9]+)$/)
 
           if (memoMatch) {
             const userIdPrefix = memoMatch[1]

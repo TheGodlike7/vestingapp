@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useState, useEffect, type ReactNode } from 'react'
  
 type Theme = 'purple' | 'green'
  
@@ -26,4 +26,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   )
 }
  
-export const useTheme = () => useContext(ThemeContext)
+export { ThemeContext }
