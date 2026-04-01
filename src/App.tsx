@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { WalletContextProvider } from './WalletProvider'
-import { supabase } from './supabase'
+import { WalletContextProvider } from './WalletProvider.tsx'
+import { supabase } from './supabase.ts'
 import { Zap, Wallet, Inbox, TrendingUp } from 'lucide-react'
-import { ThemeToggle } from './ThemeToggle'
+import { ThemeToggle } from './ThemeToggle.tsx'
 import { Connection, Transaction } from '@solana/web3.js'
-import { Toaster } from "@/components/ui/sonner";
-import { toast } from "@/components/ui/sonner-toast";
+import { Toaster } from "./components/ui/sonner.tsx";
+import { toast } from "./components/ui/sonner-toast.ts";
 
 type VestingProject = {
   project_name: string
@@ -293,13 +293,14 @@ function ClaimPage() {
                     
                   {/* Claim */}
                   <button
-                    onClick={async () => {
+                    type="button"
+                      onClick={async () => {
                       if (!publicKey || !signTransaction) return
 
                       let toastId: string | number | undefined
 
                       try {
-                        setClaimingId(schedule.id)
+src/components                        setClaimingId(schedule.id)
                         setStatusMessage(null)
                         
                         // ⏳ Show loading toast
@@ -372,7 +373,6 @@ function ClaimPage() {
                           ? 'Fully claimed'
                           : 'Nothing to claim'}
                   </button>
-                  await fetchHistory(schedule.id)
                   <div className="mt-4">
                     <p className="text-xs text-muted-foreground mb-2">Claim History</p>
                     {history.map((h) => (
