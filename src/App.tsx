@@ -1,161 +1,168 @@
-import { useEffect, useState } from 'react'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { WalletContextProvider } from './WalletProvider.tsx'
-import { supabase } from './supabase.ts'
-import { Zap, Wallet, Inbox, TrendingUp } from 'lucide-react'
-import { ThemeToggle } from './ThemeToggle.tsx'
-import { Connection, Transaction } from '@solana/web3.js'
+import { useEffect, useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { WalletContextProvider } from "./WalletProvider.tsx";
+import { supabase } from "./supabase.ts";
+import { Zap, Wallet, Inbox, TrendingUp } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle.tsx";
+import { Connection, Transaction } from "@solana/web3.js";
 import { Toaster } from "./components/ui/sonner.tsx";
 import { toast } from "./components/ui/sonner-toast.ts";
 
 type VestingProject = {
-  project_name: string
-  token_symbol: string
-  token_mint: string
-}
+  project_name: string;
+  token_symbol: string;
+  token_mint: string;
+};
 
 type VestingSchedule = {
-  id: string
-  project_id: string | null
-  recipient_wallet: string
-  total_amount: number
-  start_date: string
-  cliff_months: number | null
-  duration_months: number
-  schedule_type: string | null
-  is_active: boolean | null
-  created_at: string | null
-  vesting_projects?: VestingProject
-  claimed_amount?: number
-}
+  id: string;
+  project_id: string | null;
+  recipient_wallet: string;
+  total_amount: number;
+  start_date: string;
+  cliff_months: number | null;
+  duration_months: number;
+  schedule_type: string | null;
+  is_active: boolean | null;
+  created_at: string | null;
+  vesting_projects?: VestingProject;
+  claimed_amount?: number;
+};
 
 type ClaimHistory = {
-  id: string
-  amount: number
-  claimed_at: string
-}
-
-
+  id: string;
+  amount: number;
+  claimed_at: string;
+};
 
 function ClaimPage() {
-  const { publicKey, signTransaction } = useWallet()
-  const [schedules, setSchedules] = useState<VestingSchedule[]>([])
-  const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState<ClaimHistory[]>([])
-  const [claimingId, setClaimingId] = useState<string | null>(null)
-  const connection = new Connection('https://api.devnet.solana.com')
-  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const { publicKey, signTransaction } = useWallet();
+  const [schedules, setSchedules] = useState<VestingSchedule[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<ClaimHistory[]>([]);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const connection = new Connection("https://api.devnet.solana.com");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const fetchSchedules = async (wallet: string) => {
-    setLoading(true)
+    setLoading(true);
     const { data } = await supabase
-      .from('vesting_schedules')
+      .from("vesting_schedules")
       .select(`*, vesting_projects (project_name, token_symbol, token_mint)`)
-      .eq('recipient_wallet', wallet)
-      .eq('is_active', true)
+      .eq("recipient_wallet", wallet)
+      .eq("is_active", true);
 
-    if (data) setSchedules(data as VestingSchedule[])
-    setLoading(false)
-  }
+    if (data) setSchedules(data as VestingSchedule[]);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (!publicKey) return
+    if (!publicKey) return;
 
     const run = async () => {
-      await fetchSchedules(publicKey.toBase58())
-    }
+      await fetchSchedules(publicKey.toBase58());
+    };
 
-    run()
-  }, [publicKey])
+    run();
+  }, [publicKey]);
 
   const calculateVested = (schedule: VestingSchedule) => {
-    const now = new Date()
-    const start = new Date(schedule.start_date)
+    const now = new Date();
+    const start = new Date(schedule.start_date);
 
-    const cliffMonths = schedule.cliff_months ?? 0
-    const cliffEnd = new Date(start)
-    cliffEnd.setMonth(cliffEnd.getMonth() + cliffMonths)
+    const cliffMonths = schedule.cliff_months ?? 0;
+    const cliffEnd = new Date(start);
+    cliffEnd.setMonth(cliffEnd.getMonth() + cliffMonths);
 
-    if (now < cliffEnd) return 0
-    if (schedule.schedule_type === 'immediate') return schedule.total_amount
+    if (now < cliffEnd) return 0;
+    if (schedule.schedule_type === "immediate") return schedule.total_amount;
 
-    const totalDuration = schedule.duration_months
+    const totalDuration = schedule.duration_months;
     const elapsed =
-      (now.getTime() - start.getTime()) /
-      (1000 * 60 * 60 * 24 * 30)
+      (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30);
 
-    const vestedMonths = Math.min(elapsed, totalDuration)
+    const vestedMonths = Math.min(elapsed, totalDuration);
 
     return Number(
-      ((vestedMonths / totalDuration) * schedule.total_amount).toFixed(2)
-    )
-  }
+      ((vestedMonths / totalDuration) * schedule.total_amount).toFixed(2),
+    );
+  };
 
   const calculateCliffStatus = (schedule: VestingSchedule) => {
-    const now = new Date()
-    const start = new Date(schedule.start_date)
+    const now = new Date();
+    const start = new Date(schedule.start_date);
 
-    const cliffMonths = schedule.cliff_months ?? 0
-    const cliffEnd = new Date(start)
-    cliffEnd.setMonth(cliffEnd.getMonth() + cliffMonths)
+    const cliffMonths = schedule.cliff_months ?? 0;
+    const cliffEnd = new Date(start);
+    cliffEnd.setMonth(cliffEnd.getMonth() + cliffMonths);
 
     if (now < cliffEnd) {
       const daysLeft = Math.ceil(
-        (cliffEnd.getTime() - now.getTime()) /
-        (1000 * 60 * 60 * 24)
-      )
-      return `Cliff ends in ${daysLeft} days`
+        (cliffEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      return `Cliff ends in ${daysLeft} days`;
     }
 
-    return 'Cliff passed ✅'
-  }
+    return "Cliff passed ✅";
+  };
 
-    const getNextUnlock = (schedule: {
-    start_date: string
-    cliff_months: number | null
-    duration_months: number
+  const getNextUnlock = (schedule: {
+    start_date: string;
+    cliff_months: number | null;
+    duration_months: number;
   }) => {
+    const now = new Date();
+    const start = new Date(schedule.start_date);
 
-    const now = new Date()
-    const start = new Date(schedule.start_date)
-
-    const cliffEnd = new Date(start)
-    cliffEnd.setMonth(cliffEnd.getMonth() + (schedule.cliff_months || 0))
+    const cliffEnd = new Date(start);
+    cliffEnd.setMonth(cliffEnd.getMonth() + (schedule.cliff_months || 0));
 
     if (now < cliffEnd) {
-      const days = Math.ceil((cliffEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      return `Unlocks in ${days} days`
+      const days = Math.ceil(
+        (cliffEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      return `Unlocks in ${days} days`;
     }
 
-    const nextMonth = new Date(start)
-    nextMonth.setMonth(start.getMonth() + Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30)) + 1)
+    const nextMonth = new Date(start);
+    nextMonth.setMonth(
+      start.getMonth() +
+        Math.floor(
+          (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30),
+        ) +
+        1,
+    );
 
-    const days = Math.ceil((nextMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return `Next unlock in ${days} days`
-  }
-  
+    const days = Math.ceil(
+      (nextMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return `Next unlock in ${days} days`;
+  };
+
   const fetchHistory = async (scheduleId: string) => {
-  const { data } = await supabase
-    .from('claim_history')
-    .select('*')
-    .eq('schedule_id', scheduleId)
-    .order('claimed_at', { ascending: false })
+    const { data } = await supabase
+      .from("claim_history")
+      .select("*")
+      .eq("schedule_id", scheduleId)
+      .order("claimed_at", { ascending: false });
 
-  if (data) setHistory(data)
-}
+    if (data) setHistory(data);
+  };
 
   return (
-    <div className="min-h-screen relative" style={{ background: 'var(--gradient-hero)' }}>
+    <div
+      className="min-h-screen relative"
+      style={{ background: "var(--gradient-hero)" }}
+    >
       <div className="absolute inset-0 mesh-bg opacity-20 pointer-events-none" />
-      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[hsl(271_100%_64%/0.12)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-150 h-100 bg-[hsl(271_100%_64%/0.12)] rounded-full blur-[100px] pointer-events-none" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-6">
-
         {/* Header */}
         <div className="flex justify-between items-center mb-8 pb-6 border-b border-[hsl(265_40%_20%/0.5)]">
           <a href="/" className="flex items-center gap-2.5">
             <div className="relative w-8 h-8">
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+              <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
               <Zap className="absolute inset-0 m-auto w-4 h-4 text-white" />
             </div>
             <span className="font-display font-bold text-lg text-foreground">
@@ -179,9 +186,9 @@ function ClaimPage() {
           </p>
         </div>
         {statusMessage && (
-        <div className="mb-4 text-center text-sm text-foreground">
-          {statusMessage}
-        </div>
+          <div className="mb-4 text-center text-sm text-foreground">
+            {statusMessage}
+          </div>
         )}
         {!publicKey ? (
           <div className="glass-card rounded-2xl p-12 text-center border border-[hsl(271_100%_64%/0.2)]">
@@ -192,7 +199,8 @@ function ClaimPage() {
               Connect Your Wallet
             </h2>
             <p className="text-muted-foreground text-sm mb-8 max-w-sm mx-auto">
-              Connect your Solana wallet to view your vesting schedules and claim tokens
+              Connect your Solana wallet to view your vesting schedules and
+              claim tokens
             </p>
             <WalletMultiButton />
           </div>
@@ -216,22 +224,31 @@ function ClaimPage() {
         ) : (
           <div className="space-y-4">
             {schedules.map((schedule) => {
-              const vested = calculateVested(schedule)
-              const claimed = schedule.claimed_amount || 0
-              const claimable = Math.max(vested - claimed, 0)
-              const progress = ((claimed / schedule.total_amount) * 100).toFixed(1)
-              const progressPercent = Math.min((claimed / schedule.total_amount) * 100, 100)
+              const vested = calculateVested(schedule);
+              const claimed = schedule.claimed_amount || 0;
+              const claimable = Math.max(vested - claimed, 0);
+              const progress = (
+                (claimed / schedule.total_amount) *
+                100
+              ).toFixed(1);
+              const progressPercent = Math.min(
+                (claimed / schedule.total_amount) * 100,
+                100,
+              );
 
               return (
-                <div key={schedule.id} className="glass-card rounded-2xl p-6 border border-[hsl(265_40%_20%/0.5)]">
-
+                <div
+                  key={schedule.id}
+                  className="glass-card rounded-2xl p-6 border border-[hsl(265_40%_20%/0.5)]"
+                >
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h2 className="font-display text-lg font-semibold text-foreground mb-1">
                         {schedule.vesting_projects?.project_name}
                       </h2>
                       <p className="text-muted-foreground text-sm">
-                        {schedule.schedule_type} vesting • Started {new Date(schedule.start_date).toLocaleDateString()}
+                        {schedule.schedule_type} vesting • Started{" "}
+                        {new Date(schedule.start_date).toLocaleDateString()}
                       </p>
                     </div>
 
@@ -243,12 +260,14 @@ function ClaimPage() {
                   {/* Amounts */}
                   <div className="grid grid-cols-3 gap-3 mb-6">
                     {[
-                      { label: 'Total', value: schedule.total_amount },
-                      { label: 'Vested', value: vested },
-                      { label: 'Claimable', value: vested }
+                      { label: "Total", value: schedule.total_amount },
+                      { label: "Vested", value: vested },
+                      { label: "Claimable", value: vested },
                     ].map((item) => (
                       <div key={item.label} className="text-center">
-                        <div className="text-xs text-muted-foreground">{item.label}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.label}
+                        </div>
                         <div className="font-bold">
                           {item.value} {schedule.vesting_projects?.token_symbol}
                         </div>
@@ -257,16 +276,16 @@ function ClaimPage() {
                   </div>
                   {/* Progress Bar (claimed %) */}
                   <div className="mt-3">
-                  <div className="h-2 bg-[hsl(265_44%_15%)] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-purple-500 transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {progressPercent.toFixed(1)}% claimed
-                </p>
-              </div>
+                    <div className="h-2 bg-[hsl(265_44%_15%)] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-purple-500 transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {progressPercent.toFixed(1)}% claimed
+                    </p>
+                  </div>
 
                   {/* Progress */}
                   <div className="mb-4">
@@ -288,117 +307,127 @@ function ClaimPage() {
 
                   {/* Cooldown */}
                   <p className="text-xs text-muted-foreground mt-1">
-                     {getNextUnlock(schedule)}
+                    {getNextUnlock(schedule)}
                   </p>
-                    
+
                   {/* Claim */}
                   <button
                     type="button"
-                      onClick={async () => {
-                      if (!publicKey || !signTransaction) return
+                    onClick={async () => {
+                      if (!publicKey || !signTransaction) return;
 
-                      let toastId: string | number | undefined
+                      let toastId: string | number | undefined;
 
                       try {
-src/components                        setClaimingId(schedule.id)
-                        setStatusMessage(null)
-                        
+                        setClaimingId(schedule.id);
+                        setStatusMessage(null);
+
                         // ⏳ Show loading toast
-                        const toastId = toast.loading("Processing claim...")
+                        const toastId = toast.loading("Processing claim...");
 
                         // 1️⃣ Build transaction (SIMPLE TRANSFER EXAMPLE)
-                        const transaction = new Transaction()
+                        const transaction = new Transaction();
 
-                       // ⚠️ Placeholder — you will replace this with your vesting program later
-                       // For now we simulate a transaction
+                        // ⚠️ Placeholder — you will replace this with your vesting program later
+                        // For now we simulate a transaction
 
-                       transaction.feePayer = publicKey
+                        transaction.feePayer = publicKey;
 
-                       const { blockhash } = await connection.getLatestBlockhash()
-                       transaction.recentBlockhash = blockhash
+                        const { blockhash } =
+                          await connection.getLatestBlockhash();
+                        transaction.recentBlockhash = blockhash;
 
-                      // 2️⃣ Sign transaction
-                      const signedTx = await signTransaction(transaction)
+                        // 2️⃣ Sign transaction
+                        const signedTx = await signTransaction(transaction);
 
-                      // 3️⃣ Send transaction
-                      const txSig = await connection.sendRawTransaction(signedTx.serialize())
+                        // 3️⃣ Send transaction
+                        const txSig = await connection.sendRawTransaction(
+                          signedTx.serialize(),
+                        );
 
-                      // 4️⃣ Confirm transaction
-                      await connection.confirmTransaction(txSig, 'confirmed')
+                        // 4️⃣ Confirm transaction
+                        await connection.confirmTransaction(txSig, "confirmed");
 
-                      // 5️⃣ AFTER SUCCESS → update backend
-                      const { error } = await supabase.rpc('claim_tokens', {
-                        p_schedule_id: schedule.id,
-                        p_amount: claimable,
-                        p_wallet: publicKey.toBase58(),
-                        p_tx_signature: txSig
-                      })
+                        // 5️⃣ AFTER SUCCESS → update backend
+                        const { error } = await supabase.rpc("claim_tokens", {
+                          p_schedule_id: schedule.id,
+                          p_amount: claimable,
+                          p_wallet: publicKey.toBase58(),
+                          p_tx_signature: txSig,
+                        });
 
-                      if (error) throw error
-                      
-                      // ✅ SUCCESS TOAST HERE
-                      toast.success("Tokens claimed successfully", {
-                        id: toastId,
-                    })
+                        if (error) throw error;
 
-                      setStatusMessage('✅ Claim successful (on-chain)')
-                      await fetchSchedules(publicKey.toBase58())
-                      await fetchHistory(schedule.id)
+                        // ✅ SUCCESS TOAST HERE
+                        toast.success("Tokens claimed successfully", {
+                          id: toastId,
+                        });
 
-                    } catch (err) {
-                      const message = err instanceof Error ? err.message : 'Claim failed'
+                        setStatusMessage("✅ Claim successful (on-chain)");
+                        await fetchSchedules(publicKey.toBase58());
+                        await fetchHistory(schedule.id);
+                      } catch (err) {
+                        const message =
+                          err instanceof Error ? err.message : "Claim failed";
 
-                      // ❌ ERROR TOAST HERE
-                      toast.error(message, {
-                        id: toastId,
-                      })
+                        // ❌ ERROR TOAST HERE
+                        toast.error(message, {
+                          id: toastId,
+                        });
 
-                      setStatusMessage('❌ ' + message)
-                    } finally {
-                      setClaimingId(null)
-                    }
-                  }}
+                        setStatusMessage("❌ " + message);
+                      } finally {
+                        setClaimingId(null);
+                      }
+                    }}
                     disabled={claimable === 0 || claimingId === schedule.id}
                     className={`w-full py-2 rounded ${
                       claimable === 0 || claimingId === schedule.id
-                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                        : 'bg-purple-500 text-white'
+                        ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                        : "bg-purple-500 text-white"
                     }`}
                   >
                     {claimingId === schedule.id
-                      ? 'Claiming...'
+                      ? "Claiming..."
                       : claimable > 0
                         ? `Claim ${claimable} ${schedule.vesting_projects?.token_symbol}`
                         : claimed >= schedule.total_amount
-                          ? 'Fully claimed'
-                          : 'Nothing to claim'}
+                          ? "Fully claimed"
+                          : "Nothing to claim"}
                   </button>
                   <div className="mt-4">
-                    <p className="text-xs text-muted-foreground mb-2">Claim History</p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Claim History
+                    </p>
                     {history.map((h) => (
-                      <div key={h.id} className="text-xs text-muted-foreground flex justify-between">
-                        <span>{new Date(h.claimed_at).toLocaleDateString()}</span>
+                      <div
+                        key={h.id}
+                        className="text-xs text-muted-foreground flex justify-between"
+                      >
+                        <span>
+                          {new Date(h.claimed_at).toLocaleDateString()}
+                        </span>
                         <span>{h.amount}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default function App() {
   return (
     <>
-    <WalletContextProvider>
-      <ClaimPage />
-    </WalletContextProvider>
-    <Toaster />
+      <WalletContextProvider>
+        <ClaimPage />
+      </WalletContextProvider>
+      <Toaster />
     </>
-  )
+  );
 }
