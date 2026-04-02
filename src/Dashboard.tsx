@@ -224,7 +224,7 @@ export function Dashboard() {
         <div className="flex justify-between items-center mb-8 pb-6 border-b border-[hsl(265_40%_20%/0.5)]">
           <a href="/" className="flex items-center gap-2.5">
             <div className="relative w-8 h-8">
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+              <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
               <Zap className="absolute inset-0 m-auto w-4 h-4 text-white" />
             </div>
             <span className="font-display font-bold text-lg text-foreground">
@@ -247,7 +247,7 @@ export function Dashboard() {
               </button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 top-[calc(100%+0.5rem)] glass-card rounded-xl border border-[hsl(265_40%_20%)] min-w-[220px] z-50 overflow-hidden" style={{ boxShadow: 'var(--shadow-purple)' }}>
+                <div className="absolute right-0 top-[calc(100%+0.5rem)] glass-card rounded-xl border border-[hsl(265_40%_20%)] min-w-55 z-50 overflow-hidden" style={{ boxShadow: 'var(--shadow-purple)' }}>
                   <div className="px-4 py-3 border-b border-[hsl(265_40%_20%/0.5)]">
                     <p className="text-xs text-muted-foreground mb-1">Signed in as</p>
                     <p className="text-sm font-semibold text-foreground truncate">{user?.email}</p>
@@ -281,7 +281,7 @@ export function Dashboard() {
         {/* Page Title */}
         <div className="mb-9">
           <h1 className="font-display text-3xl md:text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-sm text-7xl mt-2">Manage your vesting projects and schedules</p>
+          <p className="text-muted-foreground text-sm mt-2">Manage your vesting projects and schedules</p>
         </div>
         
         {/* Stats */}

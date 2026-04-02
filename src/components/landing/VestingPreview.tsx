@@ -46,7 +46,7 @@ export default function VestingPreview() {
 
   return (
     <section className="relative py-36 overflow-hidden">
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[hsl(271_100%_64%/0.06)] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-150 h-150 bg-[hsl(271_100%_64%/0.06)] rounded-full blur-[120px] pointer-events-none" />
       <div className="container mx-auto px-6 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
@@ -101,7 +101,7 @@ export default function VestingPreview() {
                 className="grid grid-cols-4 items-center px-5 py-3.5 border-b border-[hsl(265_40%_20%/0.25)] hover:bg-[hsl(265_44%_15%/0.4)] transition-colors group"
               >
                 <div>
-                  <p className="text-xs font-semibold text-foreground truncate max-w-[120px]">{name}</p>
+                  <p className="text-xs font-semibold text-foreground truncate max-w-30">{name}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-mono font-bold" style={{ color }}>{amount}</p>

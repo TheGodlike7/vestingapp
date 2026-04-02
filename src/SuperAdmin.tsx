@@ -125,7 +125,7 @@ export function SuperAdmin() {
         <div className="flex justify-between items-center mb-8 pb-6 border-b border-[hsl(265_40%_20%/0.5)]">
           <a href="/" className="flex items-center gap-2.5">
             <div className="relative w-8 h-8">
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+              <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
               <Zap className="absolute inset-0 m-auto w-4 h-4 text-white" />
             </div>
             <span className="font-display font-bold text-lg text-foreground">
@@ -198,7 +198,7 @@ export function SuperAdmin() {
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'var(--gradient-primary)' }}>
                             {owner.email?.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm text-foreground truncate max-w-[180px]">{owner.email}</span>
+                          <span className="text-sm text-foreground truncate max-w-45">{owner.email}</span>
                           {owner.is_super_admin && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[hsl(45_90%_60%/0.15)] text-[hsl(45_90%_60%)] border border-[hsl(45_90%_60%/0.3)]">ADMIN</span>
                           )}

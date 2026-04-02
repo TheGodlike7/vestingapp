@@ -28,7 +28,7 @@ export function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
       style={{ background: 'var(--gradient-hero)' }}>
       <div className="absolute inset-0 mesh-bg opacity-30" />
-      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[hsl(271_100%_64%/0.15)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-150 h-100 bg-[hsl(271_100%_64%/0.15)] rounded-full blur-[100px] pointer-events-none" />
 
       <a href="/login" className="absolute top-6 left-6 text-muted-foreground hover:text-foreground transition-colors text-sm">
         ← Back to Login
@@ -38,7 +38,7 @@ export function ResetPasswordPage() {
         <div className="flex flex-col items-center mb-8">
           <a href="/" className="flex items-center gap-2.5 mb-4">
             <div className="relative w-10 h-10">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+              <div className="absolute inset-0 rounded-xl bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
               <Zap className="absolute inset-0 m-auto w-5 h-5 text-white" />
             </div>
             <span className="font-display font-bold text-2xl tracking-tight text-foreground">

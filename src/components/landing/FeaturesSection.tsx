@@ -78,7 +78,7 @@ function FeatureCard({
   return (
     <div
       ref={ref}
-      className={`glass-card rounded-2xl p-8 bg-gradient-to-br ${color} border ${border} group cursor-default
+      className={`glass-card rounded-2xl p-8 bg-linear-to-br ${color} border ${border} group cursor-default
         transition-all duration-500 ease-out
         ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
       style={{
@@ -92,7 +92,7 @@ function FeatureCard({
         (e.currentTarget as HTMLElement).style.boxShadow = "";
       }}
     >
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} border ${border} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+      <div className={`w-12 h-12 rounded-xl bg-linear-to-br ${color} border ${border} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
         <Icon className={`w-5 h-5 ${icon_color}`} />
       </div>
       <h3 className="font-display text-lg font-semibold text-foreground mb-3">{title}</h3>
@@ -104,7 +104,7 @@ function FeatureCard({
 export default function FeaturesSection() {
   return (
     <section id="features" className="relative py-36 overflow-hidden">
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[hsl(271_100%_64%/0.06)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-100 bg-[hsl(271_100%_64%/0.06)] rounded-full blur-[100px] pointer-events-none" />
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[hsl(271_100%_64%/0.3)] bg-[hsl(271_100%_64%/0.08)] mb-6">

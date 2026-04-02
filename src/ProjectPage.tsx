@@ -100,7 +100,7 @@ export function ProjectPage() {
             </button>
             <a href="/" className="flex items-center gap-2">
               <div className="relative w-7 h-7">
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+                <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
                 <Zap className="absolute inset-0 m-auto w-3.5 h-3.5 text-white" />
               </div>
               <span className="font-display font-bold text-lg text-foreground hidden sm:block">

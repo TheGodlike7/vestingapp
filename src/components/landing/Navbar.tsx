@@ -24,8 +24,8 @@ export default function Navbar() {
       <nav className="container mx-auto px-6 flex items-center justify-between">
         <a href="/" className="flex items-center gap-2.5 group">
           <div className="relative w-8 h-8">
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80 group-hover:opacity-100 transition-opacity" />
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] blur-md opacity-50 group-hover:opacity-80 transition-opacity" />
+            <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] blur-md opacity-50 group-hover:opacity-80 transition-opacity" />
             <Zap className="absolute inset-0 m-auto w-4 h-4 text-white" />
           </div>
           <span className="font-display font-bold text-xl tracking-tight text-foreground">

@@ -66,7 +66,7 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
 export default function HowItWorksSection() {
   return (
     <section id="how-it-works" className="relative py-36 overflow-hidden">
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[hsl(157_87%_51%/0.06)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-125 h-125 bg-[hsl(157_87%_51%/0.06)] rounded-full blur-[100px] pointer-events-none" />
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[hsl(157_87%_51%/0.3)] bg-[hsl(157_87%_51%/0.08)] mb-6">

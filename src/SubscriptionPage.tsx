@@ -135,7 +135,7 @@ const [user, setUser] = useState<User | null>(null)
   return (
     <div className="min-h-screen relative" style={{ background: 'var(--gradient-hero)' }}>
       <div className="absolute inset-0 mesh-bg opacity-20 pointer-events-none" />
-      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[hsl(271_100%_64%/0.15)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-150 h-100 bg-[hsl(271_100%_64%/0.15)] rounded-full blur-[100px] pointer-events-none" />
  
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-6">
         {/* Header */}
@@ -150,7 +150,7 @@ const [user, setUser] = useState<User | null>(null)
             </button>
             <a href="/" className="flex items-center gap-2">
               <div className="relative w-7 h-7">
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+                <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
                 <Zap className="absolute inset-0 m-auto w-3.5 h-3.5 text-white" />
               </div>
               <span className="font-display font-bold text-lg text-foreground hidden sm:block">

@@ -2,10 +2,10 @@ import { ArrowRight, Twitter, Github, MessageCircle } from "lucide-react";
 export default function CtaSection() {
   return (
     <section className="relative py-36 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[hsl(271_100%_64%/0.12)] via-transparent to-[hsl(157_87%_51%/0.08)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(271_100%_64%/0.4)] to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(157_87%_51%/0.3)] to-transparent" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[hsl(271_100%_64%/0.1)] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-br from-[hsl(271_100%_64%/0.12)] via-transparent to-[hsl(157_87%_51%/0.08)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-[hsl(271_100%_64%/0.4)] to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-[hsl(157_87%_51%/0.3)] to-transparent" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-100 bg-[hsl(271_100%_64%/0.1)] rounded-full blur-[120px] pointer-events-none" />
       <div className="container mx-auto px-6 relative z-10 text-center">
         <div className="max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[hsl(271_100%_64%/0.3)] bg-[hsl(271_100%_64%/0.08)] mb-6">

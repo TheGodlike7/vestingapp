@@ -27,11 +27,11 @@ export default function HeroSection() {
       />
 
       {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[hsl(275_68%_5%/0.6)] via-transparent to-[hsl(275_68%_5%/0.8)]" />
+      <div className="absolute inset-0 bg-linear-to-b from-[hsl(275_68%_5%/0.6)] via-transparent to-[hsl(275_68%_5%/0.8)]" />
 
       <div className="absolute inset-0 mesh-bg opacity-40" />
-      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[hsl(271_100%_64%/0.18)] rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-[hsl(157_87%_51%/0.1)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-225 h-125 bg-[hsl(271_100%_64%/0.18)] rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-100 h-100 bg-[hsl(157_87%_51%/0.1)] rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute top-32 left-16 w-2 h-2 bg-[hsl(var(--primary))] rounded-full opacity-60 animate-pulse-dot" />
       <div className="absolute top-48 left-32 w-1 h-1 bg-[hsl(var(--accent))] rounded-full opacity-40 animate-pulse-dot" style={{ animationDelay: "0.5s" }} />
       <div className="absolute top-64 right-20 w-2 h-2 bg-[hsl(var(--accent))] rounded-full opacity-50 animate-pulse-dot" style={{ animationDelay: "1s" }} />
@@ -79,7 +79,7 @@ export default function HeroSection() {
         </div>
       </div>
 
-      <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-[hsl(var(--background))] to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 inset-x-0 h-40 bg-linear-to-t from-[hsl(var(--background))] to-transparent pointer-events-none" />
     </section>
   );
 }

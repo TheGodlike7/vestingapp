@@ -15,8 +15,8 @@ const features = [
 export default function PricingSection() {
   return (
     <section id="pricing" className="relative py-36 overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(271_100%_64%/0.3)] to-transparent" />
-      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-[hsl(157_87%_51%/0.05)] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-[hsl(271_100%_64%/0.3)] to-transparent" />
+      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-125 h-125 bg-[hsl(157_87%_51%/0.05)] rounded-full blur-[100px] pointer-events-none" />
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-20">
@@ -37,7 +37,7 @@ export default function PricingSection() {
           <div className="glass-card rounded-2xl p-10 border border-[hsl(271_100%_64%/0.4)] relative flex flex-col max-w-md w-full transition-all duration-300 hover:shadow-purple">
             {/* Popular badge */}
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-              <div className="flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-xs font-bold text-[hsl(275_68%_5%)]">
+              <div className="flex items-center gap-1.5 px-4 py-1 rounded-full bg-linear-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-xs font-bold text-[hsl(275_68%_5%)]">
                 <Zap className="w-3 h-3" />
                 Flat Fee — No % Cut
               </div>
