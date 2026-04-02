@@ -1,3 +1,5 @@
+import { Buffer } from "buffer"
+window.Buffer = Buffer
 import Index from './pages/Index.tsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
