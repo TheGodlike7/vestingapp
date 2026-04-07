@@ -9,6 +9,13 @@ import { Connection, Transaction } from "@solana/web3.js";
 import { Toaster } from "./components/ui/sonner.tsx";
 import { toast } from "./components/ui/sonner-toast.ts";
 
+// 🔥 NEW IMPORT (will use later when you create it)
+import ClaimerDashboard from "./ClaimerDashboard";
+import ClaimerProjectsPage from "./ClaimerProjectsPage.tsx";
+import ClaimerVestingsPage from "./ClaimerVestingsPage.tsx";
+import { AdminDashboard } from "./AdminDashboard.tsx";
+import WebhookDashboard from "./WebhookDashboard.tsx";
+
 type VestingProject = {
   project_name: string;
   token_symbol: string;
@@ -36,7 +43,7 @@ type ClaimHistory = {
   claimed_at: string;
 };
 
-function ClaimPage() {
+export function ClaimPage() {
   const { publicKey, signTransaction } = useWallet();
   const [schedules, setSchedules] = useState<VestingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -421,11 +428,105 @@ function ClaimPage() {
   );
 }
 
+function AppContent() {
+  const { publicKey } = useWallet();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  const [selectedOrg, setSelectedOrg] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const [selectedProject, setSelectedProject] = useState<{
+    id: string;
+    project_name: string;
+    token_symbol: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!publicKey) return;
+
+    const checkRole = async () => {
+      const { data } = await supabase
+        .from("vesting_projects")
+        .select("id")
+        .eq("owner_id", publicKey.toBase58())
+        .limit(1);
+
+      setIsAdmin(!!(data && data.length > 0));
+    };
+
+    checkRole();
+  }, [publicKey]);
+
+  // 🔥 Loading state (no UI change, just safety)
+  if (isAdmin === null) {
+    return null;
+  }
+
+  // 🔥 ADMIN
+  if (isAdmin) {
+    return <AdminDashboard />;
+  }
+
+  if (window.location.pathname === "/webhooks") {
+    return <WebhookDashboard />;
+  }
+
+  // 🔥 CLAIMER FLOW
+
+  // 🟢 STEP 1 — Organizations
+  if (!selectedOrg) {
+    return (
+      <ClaimerDashboard onSelectOrganization={(org) => setSelectedOrg(org)} />
+    );
+  }
+
+  // 🟡 STEP 2 — Projects
+  if (!selectedProject) {
+    return (
+      <>
+        {/* 🔥 BACK BUTTON */}
+        <div
+          onClick={() => setSelectedOrg(null)}
+          style={{ cursor: "pointer", marginBottom: "10px" }}
+        >
+          ← Back
+        </div>
+
+        <ClaimerProjectsPage
+          organizationId={selectedOrg.id}
+          onSelectProject={(project: {
+            id: string;
+            project_name: string;
+            token_symbol: string;
+          }) => setSelectedProject(project)}
+        />
+      </>
+    );
+  }
+
+  // 🔵 STEP 3 — Vestings
+  return (
+    <>
+      {/* 🔥 BACK BUTTON */}
+      <div
+        onClick={() => setSelectedProject(null)}
+        style={{ cursor: "pointer", marginBottom: "10px" }}
+      >
+        ← Back
+      </div>
+
+      <ClaimerVestingsPage projectId={selectedProject.id} />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <>
       <WalletContextProvider>
-        <ClaimPage />
+        <AppContent />
       </WalletContextProvider>
       <Toaster />
     </>
