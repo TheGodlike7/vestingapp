@@ -1,8 +1,63 @@
+FILE: supabase/functions/retry-webhooks/index.ts
+TYPE: backend retry system cron reliability
+PURPOSE: Automatically retries failed webhook transactions by replaying original Helius payloads to ensure eventual subscription activation.
+
+KEY ENTITIES:
+- processed_transactions
+- helius-webhook (edge function)
+
+SEARCH_TAGS:
+retry, webhook, cron, payments, reliability, solana, usdc, helius, recovery, failed-transactions
+
+FLOW:
+1. Triggered by CRON job (or manual call)
+2. Fetch transactions where status = failed
+3. Loop through failed transactions (limit 10 per run)
+4. For each transaction:
+   - Validate raw_payload exists
+   - Send retry request to helius-webhook
+   - If success → mark as completed
+   - If failure → increment retry_count
+5. Send Telegram alerts for monitoring
+6. Return success response
+
+DEPENDENCIES:
+- processed_transactions table
+- helius-webhook edge function
+- Telegram API
+- Supabase client
+
+IMPORTANT LOGIC:
+- Uses raw_payload to replay original transaction
+- Prevents data loss from failed webhook executions
+- Retry count increments for tracking
+- Batch processing (limit 10) prevents overload
+- Works with cron scheduling
+
+SECURITY RULES:
+- Uses HELIUS_WEBHOOK_SECRET to authenticate internal webhook call
+- Should only be triggered by trusted cron system
+- Does not expose public auth (auth: false)
+
+EDGE CASES:
+- Missing raw_payload → skip transaction
+- Webhook returns non-200 → retry incremented
+- Infinite retry risk if no retry limit enforced (should be added later)
+- Partial failures within batch
+
+NOTES:
+- Critical reliability layer of payment system
+- Ensures no lost subscriptions due to temporary failures
+- Should be paired with retry limit (e.g. max 5 attempts)
+- Runs periodically via Supabase CRON
+
+<CODE BELOW>
+
 export const config = {
   auth: false,
 };
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 async function sendTelegram(message: string) {
   const BOT = Deno.env.get("TELEGRAM_BOT_TOKEN");
@@ -19,7 +74,8 @@ async function sendTelegram(message: string) {
     }),
   });
 }
-Deno.serve(async () => {
+
+Deno.serve(async (req: Request) => {
   try {
     console.log("🔥 RETRY FUNCTION STARTED");
 
@@ -40,19 +96,9 @@ Deno.serve(async () => {
       throw new Error("Failed to fetch retries");
     }
 
-    console.log("📦 Failed txs:", failedTxs);
-
     for (const tx of failedTxs || []) {
       try {
         console.log("🔁 Retrying:", tx?.signature);
-        await sendTelegram(
-          `🔁 Retry triggered\nTx: ${tx?.signature} (Attempt ${tx?.retry_count || 0})`,
-        );
-
-        if ((tx.retry_count || 0) >= 5) {
-          console.warn(`⛔ Max retries reached: ${tx.signature}`);
-          continue;
-        }
 
         if (!tx?.raw_payload) {
           console.warn("⚠️ Missing raw_payload:", tx?.signature);
@@ -75,28 +121,28 @@ Deno.serve(async () => {
 
         await supabase
           .from("processed_transactions")
-          .update({ status: "completed" })
+          .update({
+            status: "completed",
+            last_retry: new Date().toISOString(),
+          })
           .eq("signature", tx.signature);
 
-        console.log("✅ Retry success:", tx.signature);
         await sendTelegram(`✅ Retry success\nTx: ${tx.signature}`);
       } catch (innerErr) {
         console.error("❌ RETRY FAILED:", innerErr);
-        
-        // LIMIT TELEGRAM ALERTS 
-        if ((tx.retry_count || 0) < 3) {
-        await sendTelegram(`❌ Retry failed\nTx: ${tx.signature}`);
-        }
 
         await supabase
           .from("processed_transactions")
           .update({
             retry_count: (tx.retry_count || 0) + 1,
+            last_retry: new Date().toISOString(),
           })
           .eq("signature", tx.signature);
+
+        await sendTelegram(`❌ Retry failed\nTx: ${tx.signature}`);
       }
     }
-    await sendTelegram("🚀 Telegram is working");
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
     });

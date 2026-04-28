@@ -1,0 +1,95 @@
+TABLE: claim_history
+- id (uuid)
+- schedule_id (uuid)
+- wallet (text)
+- amount (numeric)
+- claimed_at (timestamp with time zone)
+- tx_signature (text)
+
+TABLE: claim_logs
+- id (uuid)
+- schedule_id (uuid)
+- wallet (text)
+- amount (numeric)
+- status (text)
+- reason (text)
+- created_at (timestamp with time zone)
+
+TABLE: fraud_logs
+- id (uuid)
+- signature (text)
+- wallet (text)
+- reason (text)
+- severity (text)
+- created_at (timestamp without time zone)
+
+TABLE: organizations
+- id (uuid)
+- owner_id (text)
+- name (text)
+- created_at (timestamp without time zone)
+
+TABLE: processed_transactions
+- signature (text)
+- created_at (timestamp without time zone)
+- status (text)
+- error (text)
+- amount (numeric)
+- wallet (text)
+- retry_count (integer)
+- last_retry (timestamp without time zone)
+- raw_payload (jsonb)
+
+TABLE: project_owners
+- id (uuid)
+- email (text)
+- wallet_address (text)
+- company_name (text)
+- plan (text)
+- is_active (boolean)
+- created_at (timestamp with time zone)
+- is_super_admin (boolean)
+
+TABLE: subscriptions
+- id (uuid)
+- owner_id (uuid)
+- status (text)
+- plan (text)
+- amount_usd (numeric)
+- amount_sol (numeric)
+- transaction_signature (text)
+- started_at (timestamp with time zone)
+- expires_at (timestamp with time zone)
+- created_at (timestamp with time zone)
+- plan_max_projects (integer)
+
+TABLE: vesting_projects
+- id (uuid)
+- owner_id (uuid)
+- project_name (text)
+- token_mint (text)
+- token_symbol (text)
+- created_at (timestamp with time zone)
+- schedules_count (integer)
+- recipients_count (integer)
+- organization_id (uuid)
+
+TABLE: vesting_schedules
+- id (uuid)
+- project_id (uuid)
+- recipient_wallet (text)
+- total_amount (numeric)
+- start_date (timestamp with time zone)
+- cliff_months (integer)
+- duration_months (integer)
+- schedule_type (text)
+- is_active (boolean)
+- created_at (timestamp with time zone)
+- claimed_amount (numeric)
+- last_claimed_at (timestamp with time zone)
+
+TABLE: wallet_risk
+- wallet (text)
+- score (integer)
+- last_flag (timestamp without time zone)
+- is_blocked (boolean)

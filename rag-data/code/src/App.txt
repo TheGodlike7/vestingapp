@@ -8,7 +8,6 @@ import { ThemeToggle } from "./ThemeToggle.tsx";
 import { Connection, Transaction } from "@solana/web3.js";
 import { Toaster } from "./components/ui/sonner.tsx";
 import { toast } from "./components/ui/sonner-toast.ts";
-import { useSubscription } from "./hooks/usesubscription.ts";
 
 // 🔥 NEW IMPORT (will use later when you create it)
 import ClaimerDashboard from "./ClaimerDashboard";
@@ -444,9 +443,21 @@ function AppContent() {
     token_symbol: string;
   } | null>(null);
 
-  const isSubscriptionValid = useSubscription(
-  publicKey ? publicKey.toBase58() : null
-);
+  const checkSubscription = async (userId: string) => {
+    
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("status, expires_at")
+    .eq("owner_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!data) return false;
+
+  return new Date(data.expires_at) > new Date();
+};
+
+  const [isSubscriptionValid, setIsSubscriptionValid] = useState<boolean | null>(null);
 
   // 🔥 CHECK ROLE
   useEffect(() => {
@@ -464,6 +475,30 @@ function AppContent() {
 
     checkRole();
   }, [publicKey]);
+
+  // 🔥 CHECK SUBSCRIPTION
+  useEffect(() => {
+  if (!publicKey) return;
+
+  const checkSubscription = async () => {
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("status, expires_at")
+      .eq("owner_id", publicKey.toBase58())
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!data) {
+      setIsSubscriptionValid(false);
+      return;
+    }
+
+    const isValid = new Date(data.expires_at) > new Date();
+    setIsSubscriptionValid(isValid);
+  };
+
+  checkSubscription();
+}, [publicKey]);
 
   // 🔥 Loading state (no UI change, just safety)
   if (isAdmin === null || isSubscriptionValid === null) {

@@ -1,0 +1,320 @@
+PROJECT: VestingApp (Solana Vesting SaaS Platform)
+
+AUTHOR: Godlike
+ENVIRONMENT:
+- Frontend: React + Vite + TypeScript
+- Backend: Supabase (Auth, Postgres, Edge Functions)
+- Deployment: Coolify VPS
+- Blockchain: Solana
+- Payments: USDC via Helius webhook
+- Wallet: Phantom
+- Repository: TheGodlike7/vestingapp (master branch)
+
+--------------------------------------------------
+
+🧱 CORE PRODUCT CONCEPT
+
+VestingApp is a SaaS platform where project owners pay $99/month in USDC (on Solana) to manage token vesting schedules for their users.
+
+The system is:
+- Non-custodial (tokens are not held centrally)
+- Subscription-based (monthly recurring)
+- Webhook-driven (Helius detects payments)
+- Fully automated (retry system + cron jobs)
+- Real-time monitored (analytics dashboard)
+
+--------------------------------------------------
+
+🏗️ SYSTEM ARCHITECTURE
+
+1. USER FLOW
+
+- User connects wallet (Phantom)
+- User pays 99 USDC to BUSINESS_WALLET
+- User includes memo:
+  vestingapp-starter-<userIdPrefix>
+
+- Helius detects transaction
+- Webhook fires → supabase/functions/helius-webhook
+- Backend validates:
+  - correct token (USDC mint)
+  - correct receiver (business wallet)
+  - correct amount (>= 99 USDC)
+  - valid memo format
+
+- Backend finds user via prefix
+- Subscription is inserted into database
+- processed_transactions prevents duplicates
+
+--------------------------------------------------
+
+2. DATABASE TABLES
+
+subscriptions:
+- owner_id
+- status (active | expired)
+- plan (starter)
+- amount_usd (99)
+- transaction_signature
+- expires_at
+
+processed_transactions:
+- signature (UNIQUE)
+- status (processing | completed | failed)
+- retry_count
+- wallet
+- amount
+- raw_payload
+- created_at
+
+project_owners:
+- id (used with memo prefix matching)
+
+vesting_projects:
+- id
+- organization_id
+
+vesting_schedules:
+- id
+- project_id
+- recipient_wallet
+- total_amount
+- claimed_amount
+- start_date
+
+--------------------------------------------------
+
+3. WEBHOOK SYSTEM
+
+File:
+supabase/functions/helius-webhook/index.ts
+
+Responsibilities:
+- Validate Helius webhook request (Authorization header)
+- Parse transaction array
+- Loop through tokenTransfers
+- Validate:
+  - mint === USDC_MINT
+  - toUserAccount === BUSINESS_WALLET
+  - tokenAmount >= REQUIRED_AMOUNT
+
+- Extract memo:
+  vestingapp-starter-<prefix>
+
+- Find owner via:
+  project_owners.ilike(prefix%)
+
+- Atomic insert into processed_transactions (lock)
+- Prevent duplicate processing
+
+- Insert subscription if valid
+- Update processed_transactions:
+  status = completed
+
+--------------------------------------------------
+
+4. FRAUD PROTECTION
+
+Implemented:
+- Atomic insert (prevents race conditions)
+- Unique signature constraint
+- Memo validation regex
+- Amount validation
+- Receiver validation
+- Failed tx skip
+
+Planned / Partial:
+- abnormal payment detection
+- multiple tx frequency detection
+- wallet blacklist
+- retry abuse detection
+
+--------------------------------------------------
+
+5. RETRY SYSTEM
+
+File:
+supabase/functions/retry-webhooks/index.ts
+
+Flow:
+- Cron triggers function
+- Fetch failed transactions from processed_transactions
+- Replay original webhook payload
+- Increment retry_count
+- Stop after max retries
+- Update status:
+  failed → retrying → completed
+
+Important:
+- Uses HELIUS_SECRET internally
+- Calls helius-webhook again
+
+--------------------------------------------------
+
+6. CRON JOBS
+
+expire-subscriptions:
+- runs every hour
+- sets:
+  status = expired
+  where expires_at < now
+
+retry-webhooks:
+- runs periodically
+- retries failed webhook events
+
+--------------------------------------------------
+
+7. SUBSCRIPTION LIFECYCLE
+
+Backend:
+- Prevent duplicate active subscription
+- Check expires_at before inserting new one
+
+Frontend:
+File: App.tsx
+
+AppContent():
+- Checks admin role
+- Checks subscription validity:
+  isSubscriptionValid
+
+Flow:
+- if not active → block access
+- redirect or show error
+
+--------------------------------------------------
+
+8. FRONTEND STRUCTURE
+
+App.tsx:
+- main routing logic
+- handles:
+  organization selection
+  project selection
+  vesting view
+
+Access layers:
+1. ClaimerDashboard → select org
+2. ClaimerProjectsPage → select project
+3. ClaimerVestingsPage → view vestings
+
+--------------------------------------------------
+
+9. CLAIM SYSTEM (PARTIAL)
+
+ClaimerVestingsPage:
+- fetch vesting_schedules
+- filter by:
+  recipient_wallet
+  project_id
+
+- display vestings
+- modal for details
+- planned:
+  on-chain SPL token claim
+
+--------------------------------------------------
+
+10. ANALYTICS DASHBOARD
+
+File: AnalyticsDashboard.tsx
+
+Features:
+- processed_transactions display
+- status (completed / failed)
+- retry count
+- timestamps
+
+Advanced:
+- KPI cards (revenue, success rate)
+- filters (all / completed / failed)
+- revenue chart (Recharts)
+- fraud panel
+- leaderboard
+- realtime updates (Supabase Realtime)
+
+--------------------------------------------------
+
+11. REALTIME SYSTEM
+
+- Supabase channel subscription
+- listens to:
+  processed_transactions changes
+
+- triggers UI refresh instantly
+- replaced polling (setInterval)
+
+--------------------------------------------------
+
+12. TELEGRAM ALERTS
+
+Partial implementation:
+- sendTelegram(message)
+
+Used for:
+- payment success
+- fraud detection
+- retries
+
+Missing:
+- retry exhaustion alerts
+- system errors
+
+--------------------------------------------------
+
+13. LIGHTRAG PURPOSE
+
+Goal:
+- eliminate hallucination
+- preserve full system memory
+- allow querying:
+  "where is subscription enforced?"
+  "how does retry system work?"
+
+Data ingested:
+- frontend code
+- backend functions
+- database schema
+- chat history (THIS FILE)
+
+--------------------------------------------------
+
+14. CURRENT PHASE
+
+CORE SYSTEM FINALIZATION:
+
+1. Subscription lifecycle enforcement (DONE IN PROGRESS)
+2. Anchor smart contract (NOT STARTED)
+3. Backend signer system (NOT STARTED)
+4. Auto claim scheduler (NOT STARTED)
+5. Multi-token support (NOT STARTED)
+
+--------------------------------------------------
+
+15. CRITICAL RULES
+
+- NEVER process same tx twice
+- ALWAYS validate memo
+- ALWAYS validate amount
+- ALWAYS use service_role in backend
+- NEVER trust frontend for security
+- ALWAYS enforce subscription before access
+
+--------------------------------------------------
+
+16. FUTURE ROADMAP
+
+- Anchor program (on-chain vesting)
+- SPL token claim execution
+- backend signer wallet
+- AI fraud detection
+- wallet risk scoring
+- auto-ban system
+- advanced analytics (MRR, churn)
+- multi-plan billing
+
+--------------------------------------------------
+
+END OF SYSTEM MEMORY
+

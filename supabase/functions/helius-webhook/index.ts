@@ -1,299 +1,324 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.35.0";
+import { createClient } from "@supabase/supabase-js";
 
-async function sendTelegram(message: string) {
-  const BOT = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const CHAT = Deno.env.get("TELEGRAM_CHAT_ID");
+// 📩 TELEGRAM HELPER
+async function sendTelegram(message: string): Promise<void> {
+  const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  const CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID");
 
-  if (!BOT || !CHAT) return;
+  if (!BOT_TOKEN || !CHAT_ID) {
+    console.warn("⚠️ Telegram env variables missing");
+    return;
+  }
 
-  await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: CHAT,
-      text: message,
-      parse_mode: "Markdown",
-    }),
-  });
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: message,
+        parse_mode: "Markdown",
+      }),
+    });
+  } catch (err) {
+    console.error("❌ Telegram send failed:", err);
+  }
 }
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const BUSINESS_WALLET = Deno.env.get("BUSINESS_WALLET")!;
-const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const REQUIRED_AMOUNT = 99 * 1_000_000;
-const HELIUS_SECRET = Deno.env.get("HELIUS_WEBHOOK_SECRET")!;
+export const config = {
+  auth: false,
+};
 
-Deno.serve(async (req: Request) => {
-  try {
-    // 🔐 STRICT AUTH CHECK
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader || authHeader !== `Bearer ${HELIUS_SECRET}`) {
-      console.warn("❌ Unauthorized webhook");
+type TokenTransfer = {
+  fromUserAccount: string;
+  toUserAccount: string;
+  mint: string;
+  tokenAmount: number;
+};
+
+type HeliusTx = {
+  signature: string;
+  tokenTransfers: TokenTransfer[];
+  memo?: string;
+};
+
+Deno.serve(async (req: Request): Promise<Response> => {
+  
+    // 🔐 AUTH CHECK — ADD THIS BLOCK HERE
+    const apiKey = req.headers.get("x-api-key");
+
+      if (apiKey !== Deno.env.get("HELIUS_WEBHOOK_SECRET")) {
+        console.warn("❌ Unauthorized webhook attempt");
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // RATE LIMIT (ANTI-SPAM)
+    const { count } = await supabase
+      .from("processed_transactions")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", new Date(Date.now() - 60000).toISOString());
+
+      if ((count || 0) > 100) {
+       return new Response("Rate limit", { status: 429 });
+      }
+
+    // 📦 PARSE BODY
+    const body: unknown = await req.json();
 
     if (!Array.isArray(body)) {
-      console.warn("❌ Invalid payload format");
       return new Response("Invalid payload", { status: 400 });
     }
 
-    for (const tx of body) {
-      if (!tx?.signature || !tx?.tokenTransfers) {
-        console.warn("⚠️ Skipping invalid tx structure");
-        continue;
-      }
+    const txs = body as HeliusTx[];
+
+    for (const tx of txs) {
+      if (!tx.signature || !tx.tokenTransfers) continue;
 
       const txSignature = tx.signature;
 
-      // 🔥 ATOMIC LOCK
+      // Onchain Extraction
+      const RPC_URL = Deno.env.get("SOLANA_RPC_URL")!;
+
+      const verifyRes = await fetch(RPC_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "getTransaction",
+        params: [
+          txSignature,
+          { encoding: "jsonParsed", maxSupportedTransactionVersion: 0 }
+        ],
+       }),
+      });
+
+      const verifyJson = await verifyRes.json();
+      
+      if (!verifyJson.result) {
+        console.warn(`🚨 Transaction not found on-chain: ${txSignature}`);
+        continue;
+      }
+      
+      const signer =
+        verifyJson.result.transaction.message.accountKeys[0];
+
+      if (!signer) {
+        console.warn("🚨 Missing signer");
+        continue;
+      }
+
+      const status = verifyJson.result.meta?.err;
+
+      if (status !== null) {
+        console.warn(`❌ Transaction failed on-chain: ${txSignature}`);
+        continue;
+      }
+
+      // Extract Real Transfers
+      const instructions =
+        verifyJson.result.transaction.message.instructions || [];
+
+      const onchainTransfers: TokenTransfer[] = [];
+
+      for (const ix of instructions) {
+        if (ix.parsed && ix.parsed.type === "transferChecked") {
+          const info = ix.parsed.info;
+
+          onchainTransfers.push({
+            fromUserAccount: info.source,
+            toUserAccount: info.destination,
+            mint: info.mint,
+            tokenAmount: Number(info.tokenAmount.amount) / 1_000_000,
+          });
+        }
+      }
+
+      // 🔒 IDEMPOTENCY LOCK
       const { error: lockError } = await supabase
         .from("processed_transactions")
-        .insert({ signature: txSignature, status: "processing", raw_payload: tx });
+        .insert({
+          signature: txSignature,
+          status: "processing",
+          raw_payload: tx,
+          retry_count: 0,
+          created_at: new Date().toISOString(),
+        });
 
       if (lockError) {
-        console.log(`⏭️ Already locked/processed ${txSignature}`);
+        console.warn(`⏭️ Duplicate or concurrent tx blocked: ${txSignature}`);
         continue;
       }
 
-      const memo = tx.description || "";
+      // 🧠 MEMO PARSE
+      const memo = tx.memo || "";
+      const memoMatch = memo.match(/^vestingapp-starter-([a-zA-Z0-9]+)/);
 
-      // 🔐 MEMO VALIDATION
-      const memoMatch = memo.match(/^vestingapp-starter-([a-zA-Z0-9]+)$/);
-
-      const tokenTransfers = tx.tokenTransfers;
-
-      // 🔥 CHECK TX STATUS (if available)
-      if (tx?.type === "FAILED") {
-        console.warn(`❌ Skipping failed tx ${txSignature}`);
+      if (!memoMatch) {
+        console.warn(`⚠️ Invalid memo for ${txSignature}`);
         continue;
       }
 
-      // 🔍 VALIDATE TRANSFERS:
-      for (const transfer of tokenTransfers) {
-        const isUSDC = transfer.mint === USDC_MINT;
-        const isToUs = transfer.toUserAccount === BUSINESS_WALLET;
-        const isEnough = transfer.tokenAmount >= REQUIRED_AMOUNT;
+      const userIdPrefix = memoMatch[1];
 
-        if (!transfer?.tokenAmount) continue;
+      // 🔍 CREATE AND FILTER VALID TRANSFERS
+      const validTransfers = onchainTransfers.filter(
+        (t) =>
+          t.mint === Deno.env.get("USDC_MINT") &&
+          t.toUserAccount === Deno.env.get("BUSINESS_WALLET") &&
+          t.tokenAmount === 0.1
+      );
 
-        // 🚩 FRAUD DETECTION: Underpayment
-        if (!transfer?.tokenAmount || transfer.tokenAmount < REQUIRED_AMOUNT) {
-          await supabase.from("fraud_logs").insert({
-            signature: txSignature,
-            reason: "Underpayment",
-            severity: "medium",
-            error: `Received ${transfer.tokenAmount} instead of ${REQUIRED_AMOUNT}`,
-          });
+      if (validTransfers.length === 0) {
+        console.warn(`⚠️ No valid payments in ${txSignature}`);
+        continue;
+      }
 
-          // 🔥 Increment Wallet Risk
-          await supabase.rpc("increment_wallet_risk", {
-            wallet_input: transfer.fromUserAccount,
-            risk_points: 10,
-          });
+      // MAX MONTH LIMIT
+      const monthsPaid = validTransfers.length;
+        
+        if (monthsPaid > 12) {
+         console.warn(`🚨 Excessive payment (${monthsPaid} months): ${txSignature}`);
+         continue;
+        }
+      
+      // 🔁 MID-FLIGHT RACE CHECK
+      const { data: existingTx } = await supabase
+        .from("processed_transactions")
+        .select("status")
+        .eq("signature", txSignature)
+        .maybeSingle();
+
+        if (existingTx?.status === "completed") {
+          console.warn(`⚠️ Already processed mid-flight: ${txSignature}`);
           continue;
         }
 
-        // 🚩 FRAUD DETECTION: Invalid USDC Token
-        if (transfer.mint !== USDC_MINT) {
-          await supabase.from("fraud_logs").insert({
-            signature: txSignature,
-            wallet: transfer.fromUserAccount,
-            reason: "INVALID_TOKEN",
-            severity: "high",
-          });
+      // 👤 FIND USER
+      const { data: owners } = await supabase
+        .from("project_owners")
+        .select("id, wallet_address")
+        .ilike("id", `${userIdPrefix}%`)
+        .limit(1);
 
-          // 🔥 Increment Wallet Risk
-          await supabase.rpc("increment_wallet_risk", {
-            wallet_input: transfer.fromUserAccount,
-            risk_points: 10,
-          });
+      if (!owners || owners.length === 0) {
+        console.warn(`⚠️ No owner found for prefix ${userIdPrefix}`);
+        continue;
+      }
+
+      const ownerId = owners[0].id;
+      const ownerWallet = owners[0].wallet_address;
+
+      // 🔐 WALLET VALIDATION
+      const payerWallet = validTransfers[0].fromUserAccount;
+      
+      // 🔒 WALLET CONSISTENCY CHECK
+      const allSameWallet = validTransfers.every((t) => t.fromUserAccount === payerWallet);
+
+        if (!allSameWallet) {
+          console.warn(`🚨 Mixed wallets in tx: ${txSignature}`);
           continue;
         }
 
-        // 🚩 FRAUD DETECTION: Invalid Destination
-        if (transfer.toUserAccount !== BUSINESS_WALLET) {
-          await supabase.from("fraud_logs").insert({
-            signature: txSignature,
-            wallet: transfer.fromUserAccount,
-            reason: "INVALID_DESTINATION",
-            severity: "high",
-          });
-
-          // 🔥 Increment Wallet Risk
-          await supabase.rpc("increment_wallet_risk", {
-            wallet_input: transfer.fromUserAccount,
-            risk_points: 10,
-          });
-          continue;
+        if (ownerWallet !== payerWallet) {
+        console.warn(`🚨 Wallet mismatch for ${ownerId}`);
+        continue;
         }
 
-        // 🚩 FRAUD DETECTION: Invalid Memo
-        if (!memoMatch) {
-          await supabase.from("fraud_logs").insert({
-            signature: txSignature,
-            wallet: transfer.fromUserAccount,
-            reason: "INVALID_MEMO",
-            severity: "high",
-          });
+      // 🔄 CHECK EXISTING ACTIVE SUBSCRIPTION
+      const { data: existingSub } = await supabase
+        .from("subscriptions")
+        .select("expires_at")
+        .eq("owner_id", ownerId)
+        .eq("status", "active")
+        .maybeSingle();
 
-          // 🔥 Increment Wallet Risk;
-          await supabase.rpc("increment_wallet_risk", {
-            wallet_input: transfer.fromUserAccount,
-            risk_points: 10,
-          });
-          continue;
+      const isNewSubscription = !existingSub;
+      const now = new Date();
 
-          await sendTelegram(
-            `🚨 *FRAUD ALERT*\n\nTx: ${txSignature}\nReason: Invalid memo`
-          );
-          continue;
-        }
+      const baseDate =
+        existingSub?.expires_at && new Date(existingSub.expires_at) > now
+        ? new Date(existingSub.expires_at)
+        : now;
 
-        if (!(isUSDC && isToUs && isEnough)) continue;
+      const expiresAt = new Date(baseDate);
+      expiresAt.setMonth(expiresAt.getMonth() + monthsPaid);
 
-        // 🔍 FIND USER
-        const { data: owners } = await supabase
-          .from("project_owners")
-          .select("id")
-          .ilike("id", `${userIdPrefix}%`)
-          .limit(1);
+      // 💾 UPSERT SUBSCRIPTION
+      const { error: subError } = await supabase
+        .from("subscriptions")
+        .upsert({
+          owner_id: ownerId,
+          status: "active",
+          plan: "starter",
+          amount_usd: 0.1 * monthsPaid,
+          started_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+          transaction_signature: txSignature,
+        });
 
-        if (!owners || owners.length === 0) {
-          console.warn(`⚠️ No user found for prefix ${userIdPrefix}`);
-          continue;
-        }
+      if (subError) {
+        console.error("❌ Subscription insert failed", subError);
 
-        const ownerId = owners[0].id;
-        // 🔍 CHECK RECENT TXS FOR DUPLICATES (WEAKER)
-        const { data: recentTx } = await supabase
-          .from("subscriptions")
-          .select("transaction_signature")
-          .eq("owner_id", ownerId)
-          .order("created_at", { ascending: false })
-          .limit(5);
-
-        if (recentTx?.some((t) => t.transaction_signature === txSignature)) {
-          await supabase.from("fraud_logs").insert({
-            signature: txSignature,
-            wallet: ownerId,
-            reason: "DUPLICATE_TRANSACTION",
-            severity: "high",
-          });
-          continue;
-        }
-
-        // 🚩 FRAUD SANCTION: Blocked Wallet
-        const { data: risk } = await supabase
-          .from("wallet_risk")
-          .select("is_blocked")
-          .eq("wallet", ownerId)
-          .maybeSingle();
-
-        if (risk?.is_blocked) {
-          console.warn(`🚫 Blocked wallet ${ownerId}`);
-
-          await supabase.from("fraud_logs").insert({
-            signature: txSignature,
-            wallet: ownerId,
-            reason: "BLOCKED_WALLET_ATTEMPT",
-            severity: "critical",
-          });
-          continue;
-        }
-
-        // 🚦 RATE LIMIT CHECK
-        const { count } = await supabase
-          .from("subscriptions")
-          .select("*", { count: "exact", head: true })
-          .eq("owner_id", ownerId)
-          .gte(
-            "created_at",
-            new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          );
-
-        if ((count ?? 0) > 3) {
-          await supabase.from("fraud_logs").insert({
-            signature: txSignature,
-            wallet: ownerId,
-            reason: "RATE_LIMIT_EXCEEDED",
-            severity: "high",
-          });
-
-          console.warn("🚨 Suspicious activity detected");
-          continue;
-        }
-
-        // � IDEMPOTENCY (STRONGER)
-        const { data: existing } = await supabase
-          .from("subscriptions")
-          .select("id")
-          .eq("transaction_signature", txSignature)
-          .maybeSingle();
-
-        if (existing) {
-          console.log(`⚠️ Duplicate tx skipped ${txSignature}`);
-          continue;
-        }
-
-        // ✅ SUBSCRIPTION ACTIVATION
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
-
-        const { error: insertError } = await supabase
-          .from("subscriptions")
-          .insert({
-            owner_id: ownerId,
-            status: "active",
-            plan: "starter",
-            amount_usd: 99,
-            transaction_signature: txSignature,
-            expires_at: expiresAt.toISOString(),
-          });
-
-          await sendTelegram(
-          `💸 *New Subscription Activated*\n\nUser: ${ownerId}\nAmount: $99\nTx: ${txSignature}`
-        );
-
-        if (insertError) {
-          console.error("❌ DB insert failed", insertError);
-
-          // 🔥 MARK FAILED
-          await supabase
-            .from("processed_transactions")
-            .update({
-              status: "failed",
-              error: insertError.message, 
-              retry_count: 0,
-              last_retry: null, })
-            .eq("signature", txSignature);
-
-          continue;
-        }
-
-        // ✅ ONLY AFTER SUCCESS
         await supabase
           .from("processed_transactions")
-          .update({ status: "completed", wallet: ownerId, amount: 99 })
+          .update({
+            status: "failed",
+            error: subError.message,
+          })
           .eq("signature", txSignature);
 
-        console.log(`✅ Subscription activated for user ${ownerId}`);
+        continue;
       }
-    }
 
+      // ✅ MARK SUCCESS
+      await supabase
+        .from("processed_transactions")
+        .update({
+          status: "completed",
+          last_retry: null,
+        })
+        .eq("signature", txSignature);
+
+      console.log(
+        `✅ Subscription updated: ${ownerId} (+${monthsPaid} months)`
+      );
+
+      if (monthsPaid >= 3) {
+        await sendTelegram(
+          `💸 *Bulk Subscription*\nUser: ${ownerId}\nMonths: ${monthsPaid}\nTx: ${txSignature}`
+        );
+      } else if (isNewSubscription) {
+        await sendTelegram(
+          `💸 *New Subscription Activated*\n\nUser: ${ownerId}\nMonths: ${monthsPaid}\nTx: ${txSignature}`
+        );
+      } else {
+        await sendTelegram(
+          `🔄 *Subscription Updated*\n\nUser: ${ownerId}\nMonths: ${monthsPaid}\nTx: ${txSignature}`
+        );
+      }
+  }
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
     });
+
   } catch (err) {
-    console.error("🔥 Webhook error:", err);
     const error = err as Error;
 
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("🔥 CRITICAL ERROR:", error.message);
+
+    return new Response(
+      JSON.stringify({ 
+        error: error.message }),
+      { status: 500, headers: { "Content-Type": "application/json" }, }
+    );
   }
 });
