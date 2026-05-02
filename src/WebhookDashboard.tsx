@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/supabase";
 
 type Tx = {
@@ -13,7 +13,7 @@ type Tx = {
 export default function WebhookDashboard() {
   const [txs, setTxs] = useState<Tx[]>([]);
 
-  const fetchTxs = async () => {
+  const fetchTxs = useCallback(async () => {
     const { data } = await supabase
       .from("processed_transactions")
       .select("*")
@@ -21,24 +21,27 @@ export default function WebhookDashboard() {
       .limit(50);
 
     if (data) setTxs(data);
-  };
+  }, []);
 
   useEffect(() => {
-    fetchTxs();
+    const initialFetch = window.setTimeout(() => {
+      void fetchTxs();
+    }, 0);
 
     const channel = supabase
       .channel("webhook-live")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "processed_transactions" },
-        () => fetchTxs()
+        () => void fetchTxs()
       )
       .subscribe();
 
     return () => {
+      window.clearTimeout(initialFetch);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchTxs]);
 
   return (
     <div className="p-6 space-y-4">

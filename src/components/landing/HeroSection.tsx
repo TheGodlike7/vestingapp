@@ -1,4 +1,4 @@
-import { ArrowRight, Shield, Zap, Users } from "lucide-react";
+import { ArrowRight, Coins, Shield, Zap, Users } from "lucide-react";
 
 const stats = [
   { label: "Non-Custodial",    value: "100%",    color: "text-[hsl(var(--accent))]"  },
@@ -64,8 +64,9 @@ export default function HeroSection() {
             Launch Dashboard
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
-          <button className="btn-outline flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-semibold">
-            View Docs
+          <button onClick={() => window.location.href = '/claim'} className="btn-outline flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-semibold">
+            <Coins className="w-4 h-4" />
+            Claim Tokens
           </button>
         </div>
 

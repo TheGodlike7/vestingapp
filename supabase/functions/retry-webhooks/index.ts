@@ -4,7 +4,15 @@ export const config = {
 
 import { createClient } from "@supabase/supabase-js";
 
-async function sendTelegram(message: string) {
+type ProcessedTransaction = {
+  signature: string;
+  status: string;
+  error: string | null;
+  retry_count: number | null;
+  raw_payload: unknown;
+};
+
+async function sendTelegram(message: string): Promise<void> {
   const BOT = Deno.env.get("TELEGRAM_BOT_TOKEN");
   const CHAT = Deno.env.get("TELEGRAM_CHAT_ID");
 
@@ -19,45 +27,40 @@ async function sendTelegram(message: string) {
     }),
   });
 }
+
 Deno.serve(async () => {
   try {
-    console.log("🔥 RETRY FUNCTION STARTED");
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const HELIUS_SECRET = Deno.env.get("HELIUS_WEBHOOK_SECRET")!;
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false },
+    });
 
     const { data: failedTxs, error } = await supabase
       .from("processed_transactions")
-      .select("*")
+      .select("signature, status, error, retry_count, raw_payload")
       .eq("status", "failed")
       .limit(10);
 
     if (error) {
-      console.error("❌ DB ERROR FULL:", JSON.stringify(error, null, 2));
-      throw new Error("Failed to fetch retries");
+      throw new Error(error.message);
     }
 
-    console.log("📦 Failed txs:", failedTxs);
-
-    for (const tx of failedTxs || []) {
+    for (const tx of (failedTxs ?? []) as ProcessedTransaction[]) {
       try {
-        console.log("🔁 Retrying:", tx?.signature);
-        await sendTelegram(
-          `🔁 Retry triggered\nTx: ${tx?.signature} (Attempt ${tx?.retry_count || 0})`,
-        );
-
         if ((tx.retry_count || 0) >= 5) {
-          console.warn(`⛔ Max retries reached: ${tx.signature}`);
+          console.warn(`Max retries reached: ${tx.signature}`);
           continue;
         }
 
-        if (!tx?.raw_payload) {
-          console.warn("⚠️ Missing raw_payload:", tx?.signature);
+        if (!tx.raw_payload) {
+          console.warn(`Missing raw_payload for ${tx.signature}`);
           continue;
         }
+
+        await sendTelegram(`Retry triggered\nTx: ${tx.signature} (Attempt ${tx.retry_count || 0})`);
 
         const res = await fetch(`${SUPABASE_URL}/functions/v1/helius-webhook`, {
           method: "POST",
@@ -70,47 +73,54 @@ Deno.serve(async () => {
 
         if (!res.ok) {
           const text = await res.text();
-          throw new Error(`Retry failed: ${text}`);
+          throw new Error(`Retry call failed: ${text}`);
         }
 
-        await supabase
+        const { data: refreshedTx, error: refreshedError } = await supabase
           .from("processed_transactions")
-          .update({ status: "completed" })
-          .eq("signature", tx.signature);
+          .select("status, error")
+          .eq("signature", tx.signature)
+          .maybeSingle<{ status: string; error: string | null }>();
 
-        console.log("✅ Retry success:", tx.signature);
-        await sendTelegram(`✅ Retry success\nTx: ${tx.signature}`);
+        if (refreshedError) {
+          throw new Error(refreshedError.message);
+        }
+
+        if (refreshedTx?.status !== "completed") {
+          throw new Error(refreshedTx?.error ?? "Retry did not complete transaction");
+        }
+
+        await sendTelegram(`Retry success\nTx: ${tx.signature}`);
       } catch (innerErr) {
-        console.error("❌ RETRY FAILED:", innerErr);
-        
-        // LIMIT TELEGRAM ALERTS 
+        const message = innerErr instanceof Error ? innerErr.message : String(innerErr);
+        console.error(`Retry failed for ${tx.signature}:`, message);
+
         if ((tx.retry_count || 0) < 3) {
-        await sendTelegram(`❌ Retry failed\nTx: ${tx.signature}`);
+          await sendTelegram(`Retry failed\nTx: ${tx.signature}\n${message}`);
         }
 
         await supabase
           .from("processed_transactions")
           .update({
+            status: "failed",
+            error: message,
             retry_count: (tx.retry_count || 0) + 1,
+            last_retry: new Date().toISOString(),
           })
           .eq("signature", tx.signature);
       }
     }
-    await sendTelegram("🚀 Telegram is working");
+
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("🔥 TOP LEVEL ERROR:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("retry-webhooks failed:", message);
 
-    return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : String(err),
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 });

@@ -41,6 +41,8 @@ type ProcessedTx = {
   created_at: string;
 };
 
+const backendActivityFilters = ["all", "completed", "failed"] as const;
+
 export default function AnalyticsDashboard() {
   const [chartData, setChartData] = useState<{ date: string; total: number }[]>(
     [],
@@ -527,10 +529,10 @@ export default function AnalyticsDashboard() {
           Live Backend Activity
         </h2>
         <div className="flex gap-2 mb-4">
-          {["all", "completed", "failed"].map((f) => (
+          {backendActivityFilters.map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f as any)}
+              onClick={() => setFilter(f)}
               className={`px-3 py-1 rounded-lg text-xs font-semibold 
             ${
               filter === f

@@ -6,6 +6,7 @@ import { supabase } from "./supabase.ts";
 import { Zap, Wallet, Inbox, TrendingUp } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle.tsx";
 import { Connection, Transaction } from "@solana/web3.js";
+import { ClaimOnboardingGuide } from "./components/onboarding/ClaimOnboardingGuide.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import { toast } from "./components/ui/sonner-toast.ts";
 import { useSubscription } from "./hooks/usesubscription.ts";
@@ -178,7 +179,7 @@ export function ClaimPage() {
             </span>
           </a>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" data-claim-guide="wallet-control">
             <ThemeToggle />
             <WalletMultiButton />
           </div>
@@ -194,12 +195,18 @@ export function ClaimPage() {
           </p>
         </div>
         {statusMessage && (
-          <div className="mb-4 text-center text-sm text-foreground">
+          <div
+            className="mb-4 text-center text-sm text-foreground"
+            data-claim-guide="claim-status"
+          >
             {statusMessage}
           </div>
         )}
         {!publicKey ? (
-          <div className="glass-card rounded-2xl p-12 text-center border border-[hsl(271_100%_64%/0.2)]">
+          <div
+            className="glass-card rounded-2xl p-12 text-center border border-[hsl(271_100%_64%/0.2)]"
+            data-claim-guide="connect-wallet"
+          >
             <div className="w-20 h-20 rounded-2xl bg-[hsl(271_100%_64%/0.1)] border border-[hsl(271_100%_64%/0.2)] flex items-center justify-center mx-auto mb-6">
               <Wallet className="w-10 h-10 text-[hsl(var(--primary))]" />
             </div>
@@ -218,7 +225,10 @@ export function ClaimPage() {
             Loading your schedules...
           </div>
         ) : schedules.length === 0 ? (
-          <div className="glass-card rounded-2xl p-12 text-center border border-[hsl(265_40%_20%/0.5)]">
+          <div
+            className="glass-card rounded-2xl p-12 text-center border border-[hsl(265_40%_20%/0.5)]"
+            data-claim-guide="schedule-list"
+          >
             <div className="w-20 h-20 rounded-2xl bg-[hsl(265_44%_15%/0.5)] border border-[hsl(265_40%_20%)] flex items-center justify-center mx-auto mb-6">
               <Inbox className="w-10 h-10 text-muted-foreground" />
             </div>
@@ -230,8 +240,8 @@ export function ClaimPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {schedules.map((schedule) => {
+          <div className="space-y-4" data-claim-guide="schedule-list">
+            {schedules.map((schedule, index) => {
               const vested = calculateVested(schedule);
               const claimed = schedule.claimed_amount || 0;
               const claimable = Math.max(vested - claimed, 0);
@@ -248,6 +258,7 @@ export function ClaimPage() {
                 <div
                   key={schedule.id}
                   className="glass-card rounded-2xl p-6 border border-[hsl(265_40%_20%/0.5)]"
+                  data-claim-guide={index === 0 ? "vesting-card" : undefined}
                 >
                   <div className="flex justify-between items-start mb-6">
                     <div>
@@ -266,11 +277,11 @@ export function ClaimPage() {
                   </div>
 
                   {/* Amounts */}
-                  <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="grid grid-cols-3 gap-3 mb-6" data-claim-guide={index === 0 ? "vesting-amounts" : undefined}>
                     {[
                       { label: "Total", value: schedule.total_amount },
                       { label: "Vested", value: vested },
-                      { label: "Claimable", value: vested },
+                      { label: "Claimable", value: claimable },
                     ].map((item) => (
                       <div key={item.label} className="text-center">
                         <div className="text-xs text-muted-foreground">
@@ -283,7 +294,7 @@ export function ClaimPage() {
                     ))}
                   </div>
                   {/* Progress Bar (claimed %) */}
-                  <div className="mt-3">
+                  <div className="mt-3" data-claim-guide={index === 0 ? "vesting-progress" : undefined}>
                     <div className="h-2 bg-[hsl(265_44%_15%)] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-purple-500 transition-all duration-500"
@@ -330,14 +341,9 @@ export function ClaimPage() {
                         setClaimingId(schedule.id);
                         setStatusMessage(null);
 
-                        // ⏳ Show loading toast
-                        const toastId = toast.loading("Processing claim...");
+                        toastId = toast.loading("Processing claim...");
 
-                        // 1️⃣ Build transaction (SIMPLE TRANSFER EXAMPLE)
                         const transaction = new Transaction();
-
-                        // ⚠️ Placeholder — you will replace this with your vesting program later
-                        // For now we simulate a transaction
 
                         transaction.feePayer = publicKey;
 
@@ -345,18 +351,14 @@ export function ClaimPage() {
                           await connection.getLatestBlockhash();
                         transaction.recentBlockhash = blockhash;
 
-                        // 2️⃣ Sign transaction
                         const signedTx = await signTransaction(transaction);
 
-                        // 3️⃣ Send transaction
                         const txSig = await connection.sendRawTransaction(
                           signedTx.serialize(),
                         );
 
-                        // 4️⃣ Confirm transaction
                         await connection.confirmTransaction(txSig, "confirmed");
 
-                        // 5️⃣ AFTER SUCCESS → update backend
                         const { error } = await supabase.rpc("claim_tokens", {
                           p_schedule_id: schedule.id,
                           p_amount: claimable,
@@ -366,7 +368,6 @@ export function ClaimPage() {
 
                         if (error) throw error;
 
-                        // ✅ SUCCESS TOAST HERE
                         toast.success("Tokens claimed successfully", {
                           id: toastId,
                         });
@@ -378,7 +379,6 @@ export function ClaimPage() {
                         const message =
                           err instanceof Error ? err.message : "Claim failed";
 
-                        // ❌ ERROR TOAST HERE
                         toast.error(message, {
                           id: toastId,
                         });
@@ -389,6 +389,7 @@ export function ClaimPage() {
                       }
                     }}
                     disabled={claimable === 0 || claimingId === schedule.id}
+                    data-claim-guide={index === 0 ? "claim-action" : undefined}
                     className={`w-full py-2 rounded ${
                       claimable === 0 || claimingId === schedule.id
                         ? "bg-gray-400 text-gray-200 cursor-not-allowed"
@@ -403,7 +404,7 @@ export function ClaimPage() {
                           ? "Fully claimed"
                           : "Nothing to claim"}
                   </button>
-                  <div className="mt-4">
+                  <div className="mt-4" data-claim-guide={index === 0 ? "claim-history" : undefined}>
                     <p className="text-xs text-muted-foreground mb-2">
                       Claim History
                     </p>
@@ -425,6 +426,7 @@ export function ClaimPage() {
           </div>
         )}
       </div>
+      <ClaimOnboardingGuide walletAddress={publicKey?.toBase58() ?? null} />
     </div>
   );
 }
