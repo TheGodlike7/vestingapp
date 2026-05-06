@@ -20,8 +20,10 @@ flowchart TD
 
   Login --> Dashboard["/dashboard AdminDashboard"]
   Dashboard --> Subscription["/subscription SubscriptionPage"]
+  Dashboard --> Organization["/organization OrganizationPage"]
   Dashboard --> Project["/project/:projectId ProjectPage"]
   Dashboard --> Analytics["/analytics AnalyticsDashboard"]
+  Analytics --> BackendActivity["/analytics/activity AnalyticsActivityPage"]
   Dashboard --> SuperAdmin["/superadmin SuperAdmin"]
   Dashboard --> AdminPanel["/admin AdminPanel"]
   Dashboard --> Webhooks["/webhooks WebhookDashboard"]
@@ -42,7 +44,7 @@ flowchart LR
   Login --> Dashboard["Issuer Dashboard"]
   Dashboard --> Subscribe["Subscription Checkout"]
   Subscribe --> Active["Active Subscription"]
-  Active --> CreateOrg["Create Organization"]
+  Active --> CreateOrg["Create Organization + KYC"]
   CreateOrg --> CreateProject["Create Project"]
   CreateProject --> CreateSchedule["Create Vesting Schedule"]
   CreateSchedule --> Recipient["Recipient Claims Tokens"]
@@ -57,8 +59,6 @@ flowchart LR
   Claimable --> SignClaim["Sign Claim Transaction"]
   SignClaim --> ClaimHistory["Claim History Updated"]
 ```
-
-
 
 ## Claim Portal Onboarding
 
@@ -97,7 +97,8 @@ flowchart TD
   SubscriptionSpotlight --> OrganizationSpotlight["Spotlight: organization card"]
   OrganizationSpotlight --> ProjectSpotlight["Spotlight: new project action"]
   ProjectSpotlight --> RecipientSpotlight["Spotlight: projects and recipients path"]
-  RecipientSpotlight --> Complete["Mark complete locally and in DB"]
+  RecipientSpotlight --> AnalyticsSpotlight["Spotlight: analytics shortcut"]
+  AnalyticsSpotlight --> Complete["Mark complete locally and in DB"]
   Complete --> HelpButton["Replay from fixed help button"]
 ```
 
@@ -187,12 +188,13 @@ sequenceDiagram
 | --- | --- | --- |
 | Landing | `src/pages/Index.tsx`, `src/LandingPage.tsx`, `src/components/landing/*` | Public marketing surface |
 | Auth | `src/AuthPage.tsx`, `src/ResetPasswordPage.tsx` | Login and account recovery |
-| Dashboard | `src/AdminDashboard.tsx`, `src/components/onboarding/OnboardingGuide.tsx`, `src/CreateOrganization.tsx` | Main issuer/admin workspace with replayable quest onboarding |
+| Dashboard | `src/AdminDashboard.tsx`, `src/components/onboarding/OnboardingGuide.tsx` | Main issuer/admin workspace with replayable quest onboarding |
+| Organization KYC | `src/OrganizationPage.tsx`, `src/CreateOrganization.tsx` | Subscription-gated owner wallet, organization identity, and official links form |
 | Project detail | `src/ProjectPage.tsx` | Project schedules and management |
 | Subscription | `src/SubscriptionPage.tsx`, `src/components/subscription/*`, `src/payments/*` | Starter plan, checkout modal, wallet payment orchestration |
 | Claim portal | `src/App.tsx`, `src/components/onboarding/ClaimOnboardingGuide.tsx`, `src/ClaimerDashboard.tsx`, `src/ClaimerProjectsPage.tsx`, `src/ClaimerVestingsPage.tsx` | Recipient token claim flow with replayable local guide |
 | Admin tools | `src/AdminPanel.tsx`, `src/SuperAdmin.tsx` | Elevated admin functions |
-| Monitoring | `src/AnalyticsDashboard.tsx`, `src/WebhookDashboard.tsx`, `src/FraudDashboard.tsx` | Analytics, webhooks, risk signals |
+| Monitoring | `src/AnalyticsDashboard.tsx`, `src/AnalyticsActivityPage.tsx`, `src/WebhookDashboard.tsx`, `src/FraudDashboard.tsx` | Analytics, full backend activity explorer-lite view, webhooks, risk signals |
 
 ## Core Data Model
 
@@ -219,6 +221,20 @@ erDiagram
     boolean is_active
     boolean is_super_admin
     boolean onboarding_completed
+  }
+
+  organizations {
+    uuid id
+    text owner_id
+    text name
+    text organization_type
+    text owner_full_name
+    text x_url
+    text discord_url
+    text telegram_url
+    text linkedin_url
+    text website_url
+    boolean kyc_profile_submitted
   }
 
   pending_payments {
@@ -294,20 +310,37 @@ flowchart TD
   Expire["expire-subscriptions"] --> Subs
 ```
 
+## Theme Modes
+
+- `Purple Mode`: default violet and green VestingApp identity.
+- `Green Mode`: green-first Solana operational mode.
+- `Crimson Mode`: dark red and hot pink Solana glow mode.
+- `Solar Mode`: electric yellow and chartreuse Solana glow mode with sparse yellow-green and yellow-white twinkling star dust.
+- `Prism Mode`: neon purple, magenta, and orange multi-glow mode.
+- The top `ThemeToggle` button cycles through all modes using the same `va-theme` localStorage and `data-theme` CSS-variable mechanism.
+
 ## Design Notes
 
 - Keep issuer/admin screens dense, scannable, and operational.
+- Keep organization creation subscription-gated and KYC-focused: DAO profiles require X, Discord, and Telegram; company profiles require LinkedIn, website, and Meta/Facebook or Instagram. Superadmins may preview the form read-only on `/organization` without wallet, subscription, edits, or submission.
 - Keep subscription UI plan-centered, not deposit-centered.
 - Keep the claim flow wallet-first and minimal.
 - Treat card payments as a separate processor-backed subscription checkout, not a fake local action.
 - Treat frontend locks as UX protection only; `pending_payments` and `processed_transactions` are the durable duplicate guards.
 - Keep the memo format stable: `vestingapp-starter-${userIdPrefix}`.
-- Keep the dashboard onboarding replayable, dismissible, and anchored to real controls instead of explanatory pages.
+- Keep the dashboard onboarding replayable, dismissible, and anchored to real controls, including the visible analytics shortcut, instead of explanatory pages.
+- Keep live backend activity readable: `/analytics` shows a short recent preview, while `/analytics/activity` loads processed transactions with status filters, search, 20-row pagination, and 15-character signature previews.
 - Keep the claim portal reachable from the landing page and teach it separately from issuer onboarding.
+
+## Mainnet Readiness
+
+- Solana network selection defaults to `mainnet-beta`; `devnet` is only used when explicitly set for testing.
+- Subscription crypto amount is network-locked: `99 USDC` on `mainnet-beta`, `0.1 USDC` on `devnet`.
+- Helius webhook JWT verification is disabled at the Supabase gateway and protected by `HELIUS_WEBHOOK_SECRET`.
+- Claiming is intentionally disabled by source-level readiness gates until the secure on-chain claim path is implemented.
 
 ## Open Design Decisions
 
 - Choose the final card processor configuration for the Stripe-ready placeholder.
-- Decide whether the public price label stays `$99/month` while devnet testing uses `0.1 USDC`.
 - Decide whether MetaMask/Binance/OKX/Jupiter support needs WalletConnect in addition to Solana Wallet Standard discovery.
 - Decide whether `SuperAdmin`, `WebhookDashboard`, and `FraudDashboard` stay first-level routes or move behind a unified admin tools area.

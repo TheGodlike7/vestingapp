@@ -9,7 +9,9 @@ import { ClaimPage } from './App.tsx'
 import { AdminPanel } from './AdminPanel.tsx'
 import { AuthPage } from './AuthPage.tsx'
 import { AdminDashboard } from './AdminDashboard.tsx'
+import { OrganizationPage } from './OrganizationPage.tsx'
 import AnalyticsDashboard from './AnalyticsDashboard.tsx'
+import AnalyticsActivityPage from './AnalyticsActivityPage.tsx'
 import { ProjectPage } from './ProjectPage.tsx'
 import { SuperAdmin } from './SuperAdmin.tsx'
 import { SubscriptionPage } from './SubscriptionPage.tsx'
@@ -27,7 +29,9 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/claim" element={<ClaimPage />} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/dashboard" element={<AdminDashboard />} />
+        <Route path="/organization" element={<OrganizationPage />} />
         <Route path="/analytics" element={<AnalyticsDashboard />} />
+        <Route path="/analytics/activity" element={<AnalyticsActivityPage />} />
         <Route path="/project/:projectId" element={<ProjectPage />} />
         <Route path="/superadmin" element={<SuperAdmin />} />
         <Route path="/subscription" element={<SubscriptionPage />} />

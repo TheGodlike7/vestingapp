@@ -383,3 +383,179 @@
   --glow-purple: 0 0 60px hsl(157 87% 51% / 0.4), 0 0 120px hsl(157 87% 51% / 0.15);
   --shadow-purple: 0 0 40px hsl(157 87% 51% / 0.25);
 }
+
+/* Crimson theme override */
+[data-theme="crimson"] {
+  --background: 340 68% 4%;
+  --surface: 340 52% 10%;
+  --surface-elevated: 340 44% 14%;
+  --primary: 339 100% 50%;
+  --primary-glow: 339 100% 45%;
+  --accent: 326 100% 62%;
+  --accent-foreground: 340 68% 4%;
+  --card: 340 52% 10%;
+  --popover: 340 52% 10%;
+  --secondary: 340 44% 14%;
+  --muted: 340 44% 14%;
+  --border: 340 42% 20%;
+  --input: 340 42% 20%;
+  --ring: 339 100% 50%;
+  --sidebar-background: 340 62% 6%;
+  --sidebar-primary: 339 100% 50%;
+  --sidebar-accent: 340 44% 14%;
+  --sidebar-border: 340 40% 18%;
+  --sidebar-ring: 339 100% 50%;
+  --gradient-hero: radial-gradient(ellipse 80% 60% at 50% -10%, hsl(339 100% 50% / 0.32) 0%, transparent 60%),
+                   radial-gradient(ellipse 70% 50% at 18% 70%, hsl(326 100% 42% / 0.24) 0%, transparent 55%),
+                   hsl(340 68% 4%);
+  --gradient-primary: linear-gradient(135deg, hsl(339 100% 50%), hsl(326 100% 62%));
+  --gradient-card: linear-gradient(145deg, hsl(340 52% 13% / 0.82), hsl(340 44% 9% / 0.64));
+  --gradient-border: linear-gradient(135deg, hsl(339 100% 50% / 0.4), hsl(326 100% 62% / 0.22));
+  --shadow-purple: 0 0 40px hsl(339 100% 50% / 0.25);
+  --shadow-green: 0 0 40px hsl(326 100% 62% / 0.2);
+  --shadow-card: 0 8px 32px hsl(339 100% 50% / 0.09), inset 0 1px 0 hsl(255 100% 100% / 0.05);
+  --glow-purple: 0 0 60px hsl(339 100% 50% / 0.4), 0 0 120px hsl(339 100% 50% / 0.15);
+  --glow-green: 0 0 30px hsl(326 100% 62% / 0.48);
+}
+
+/* Solar theme override */
+[data-theme="solar"] {
+  --background: 58 64% 4%;
+  --surface: 58 46% 10%;
+  --surface-elevated: 58 38% 14%;
+  --primary: 56 100% 50%;
+  --primary-glow: 56 100% 45%;
+  --accent: 82 100% 48%;
+  --accent-foreground: 58 64% 4%;
+  --card: 58 46% 10%;
+  --popover: 58 46% 10%;
+  --secondary: 58 38% 14%;
+  --muted: 58 38% 14%;
+  --border: 58 35% 20%;
+  --input: 58 35% 20%;
+  --ring: 56 100% 50%;
+  --sidebar-background: 58 58% 6%;
+  --sidebar-primary: 56 100% 50%;
+  --sidebar-accent: 58 38% 14%;
+  --sidebar-border: 58 32% 18%;
+  --sidebar-ring: 56 100% 50%;
+  --gradient-hero: radial-gradient(ellipse 80% 60% at 58% -10%, hsl(56 100% 50% / 0.3) 0%, transparent 62%),
+                   radial-gradient(ellipse 70% 52% at 86% 75%, hsl(82 100% 48% / 0.16) 0%, transparent 56%),
+                   hsl(58 64% 4%);
+  --gradient-primary: linear-gradient(135deg, hsl(56 100% 50%), hsl(82 100% 48%));
+  --gradient-card: linear-gradient(145deg, hsl(58 46% 13% / 0.82), hsl(58 38% 9% / 0.64));
+  --gradient-border: linear-gradient(135deg, hsl(56 100% 50% / 0.42), hsl(82 100% 48% / 0.22));
+  --shadow-purple: 0 0 40px hsl(56 100% 50% / 0.23);
+  --shadow-green: 0 0 40px hsl(82 100% 48% / 0.18);
+  --shadow-card: 0 8px 32px hsl(56 100% 50% / 0.08), inset 0 1px 0 hsl(255 100% 100% / 0.05);
+  --glow-purple: 0 0 60px hsl(56 100% 50% / 0.36), 0 0 120px hsl(56 100% 50% / 0.14);
+  --glow-green: 0 0 30px hsl(82 100% 48% / 0.44);
+}
+
+/* Prism theme override */
+[data-theme="prism"] {
+  --background: 278 68% 4%;
+  --surface: 276 54% 10%;
+  --surface-elevated: 276 46% 14%;
+  --primary: 291 100% 64%;
+  --primary-glow: 291 100% 58%;
+  --accent: 38 100% 58%;
+  --accent-foreground: 278 68% 4%;
+  --card: 276 54% 10%;
+  --popover: 276 54% 10%;
+  --secondary: 276 46% 14%;
+  --muted: 276 46% 14%;
+  --border: 276 42% 20%;
+  --input: 276 42% 20%;
+  --ring: 291 100% 64%;
+  --sidebar-background: 278 62% 6%;
+  --sidebar-primary: 291 100% 64%;
+  --sidebar-accent: 276 46% 14%;
+  --sidebar-border: 276 38% 18%;
+  --sidebar-ring: 291 100% 64%;
+  --gradient-hero: radial-gradient(ellipse 80% 60% at 38% -10%, hsl(291 100% 64% / 0.34) 0%, transparent 60%),
+                   radial-gradient(ellipse 64% 52% at 70% 54%, hsl(38 100% 58% / 0.2) 0%, transparent 56%),
+                   radial-gradient(ellipse 55% 48% at 18% 72%, hsl(258 100% 58% / 0.18) 0%, transparent 55%),
+                   hsl(278 68% 4%);
+  --gradient-primary: linear-gradient(135deg, hsl(291 100% 64%), hsl(258 100% 58%), hsl(38 100% 58%));
+  --gradient-card: linear-gradient(145deg, hsl(276 54% 13% / 0.82), hsl(276 46% 9% / 0.64));
+  --gradient-border: linear-gradient(135deg, hsl(291 100% 64% / 0.42), hsl(38 100% 58% / 0.22));
+  --shadow-purple: 0 0 40px hsl(291 100% 64% / 0.25);
+  --shadow-green: 0 0 40px hsl(38 100% 58% / 0.18);
+  --shadow-card: 0 8px 32px hsl(291 100% 64% / 0.09), inset 0 1px 0 hsl(255 100% 100% / 0.05);
+  --glow-purple: 0 0 60px hsl(291 100% 64% / 0.4), 0 0 120px hsl(291 100% 64% / 0.15);
+  --glow-green: 0 0 30px hsl(38 100% 58% / 0.42);
+}
+
+/* Sparse Solar Mode star dust */
+[data-theme="solar"] .mesh-bg {
+  opacity: 0.42 !important;
+  background-image:
+    linear-gradient(hsl(56 100% 58% / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(56 100% 58% / 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+[data-theme="solar"] .mesh-bg::before,
+[data-theme="solar"] .mesh-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  mix-blend-mode: screen;
+  transform: translateZ(0);
+}
+
+[data-theme="solar"] .mesh-bg::before {
+  background-image:
+    radial-gradient(circle, hsl(54 100% 92% / 0.95) 0.65px, transparent 1.4px),
+    radial-gradient(circle, hsl(78 100% 62% / 0.82) 0.75px, transparent 1.55px),
+    radial-gradient(circle, hsl(56 100% 74% / 0.72) 0.55px, transparent 1.25px);
+  background-position:
+    31px 47px,
+    149px 29px,
+    263px 173px;
+  background-size:
+    240px 240px,
+    380px 380px,
+    560px 560px;
+  filter:
+    drop-shadow(0 0 3px hsl(56 100% 58% / 0.32))
+    drop-shadow(0 0 7px hsl(82 100% 48% / 0.16));
+  animation: solar-star-twinkle-a 12s ease-in-out infinite;
+}
+
+[data-theme="solar"] .mesh-bg::after {
+  background-image:
+    radial-gradient(circle, hsl(74 100% 70% / 0.86) 0.6px, transparent 1.35px),
+    radial-gradient(circle, hsl(52 100% 96% / 0.72) 0.7px, transparent 1.5px);
+  background-position:
+    97px 133px,
+    311px 71px;
+  background-size:
+    320px 320px,
+    620px 620px;
+  filter:
+    drop-shadow(0 0 4px hsl(74 100% 58% / 0.22))
+    drop-shadow(0 0 8px hsl(52 100% 78% / 0.14));
+  animation: solar-star-twinkle-b 17s ease-in-out infinite;
+  animation-delay: -5s;
+}
+
+@keyframes solar-star-twinkle-a {
+  0%, 100% { opacity: 0.05; }
+  14% { opacity: 0.34; }
+  32% { opacity: 0.09; }
+  51% { opacity: 0.28; }
+  73% { opacity: 0.07; }
+  88% { opacity: 0.2; }
+}
+
+@keyframes solar-star-twinkle-b {
+  0%, 100% { opacity: 0.03; }
+  20% { opacity: 0.22; }
+  42% { opacity: 0.06; }
+  64% { opacity: 0.26; }
+  81% { opacity: 0.08; }
+}

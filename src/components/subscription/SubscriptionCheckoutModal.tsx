@@ -10,6 +10,45 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { PaymentTab, WalletOption } from '@/payments/subscriptionPaymentTypes'
 import { formatUsdc } from '@/payments/subscriptionPaymentConfig'
 
+function WalletBrandIcon({ icon, label }: { icon: string; label: string }) {
+  if (icon) {
+    return (
+      <img
+        src={icon}
+        alt=""
+        className="h-6 w-6 shrink-0 rounded-md object-contain"
+        loading="lazy"
+      />
+    )
+  }
+
+  return (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[hsl(265_44%_20%)] text-xs font-bold text-foreground">
+      {label.slice(0, 1).toUpperCase()}
+    </span>
+  )
+}
+
+function VisaLogo() {
+  return (
+    <svg viewBox="0 0 40 24" className="h-6 w-10 shrink-0" aria-label="Visa">
+      <rect width="40" height="24" rx="4" fill="white" />
+      <path d="M15.1 15.8h-2.3l1.4-7.5h2.3l-1.4 7.5Zm8.2-7.3a5.9 5.9 0 0 0-2-.35c-2.2 0-3.8 1.03-3.8 2.5 0 1.1 1.08 1.7 1.9 2.07.85.39 1.14.64 1.13.99 0 .54-.74.79-1.43.79-.95 0-1.46-.13-2.25-.43l-.3-.13-.34 1.82c.53.21 1.5.4 2.5.41 2.35 0 3.9-1.02 3.92-2.6.01-.86-.58-1.52-1.88-2.07-.78-.35-1.26-.58-1.26-.94 0-.32.4-.66 1.29-.66.78-.01 1.34.15 1.78.31l.21.09.33-1.76Zm5.94-.2h-1.8c-.56 0-.98.14-1.22.68l-3.48 6.82h2.46l.49-1.18h3l.28 1.18h2.17L29.24 8.3Zm-2.88 4.72 1.22-2.86.7 2.86h-1.92ZM10.85 8.3l-2.25 5.1-.24-1.08c-.42-1.23-1.72-2.56-3.18-3.22l2.06 6.69h2.48l3.62-7.49h-2.5Z" fill="#1434CB" />
+    </svg>
+  )
+}
+
+function MastercardLogo() {
+  return (
+    <svg viewBox="0 0 40 24" className="h-6 w-10 shrink-0" aria-label="Mastercard">
+      <rect width="40" height="24" rx="4" fill="white" />
+      <circle cx="16" cy="12" r="6.2" fill="#EB001B" />
+      <circle cx="24" cy="12" r="6.2" fill="#F79E1B" fillOpacity="0.92" />
+      <path d="M20 7.24a6.18 6.18 0 0 1 0 9.52 6.18 6.18 0 0 1 0-9.52Z" fill="#FF5F00" />
+    </svg>
+  )
+}
+
 type SubscriptionCheckoutModalProps = {
   open: boolean
   loading: boolean
@@ -109,8 +148,11 @@ export function SubscriptionCheckoutModal({
                       } disabled:cursor-not-allowed disabled:opacity-50`}
                       type="button"
                     >
-                      <span className="font-medium">{walletOption.label}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <WalletBrandIcon icon={walletOption.icon} label={walletOption.label} />
+                        <span className="truncate font-medium">{walletOption.label}</span>
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
                         {walletOption.connected && walletOption.selected ? 'Connected' : walletOption.readyState}
                       </span>
                     </button>
@@ -174,9 +216,9 @@ export function SubscriptionCheckoutModal({
                     Visa and Mastercard checkout can be connected when Stripe is configured.
                   </p>
                 </div>
-                <div className="flex gap-2 text-xs font-bold">
-                  <span className="rounded bg-white px-2 py-1 text-slate-900">VISA</span>
-                  <span className="rounded bg-white px-2 py-1 text-slate-900">MC</span>
+                <div className="flex items-center gap-2">
+                  <VisaLogo />
+                  <MastercardLogo />
                 </div>
               </div>
               <button

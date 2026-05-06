@@ -22,7 +22,7 @@ function AnimatedBar({ pct, color }: { pct: number; color: string }) {
   }, []);
 
   return (
-    <div ref={ref} className="h-1.5 w-32 rounded-full bg-[hsl(265_44%_15%)] overflow-hidden">
+    <div ref={ref} className="h-1.5 w-full min-w-14 max-w-36 rounded-full bg-[hsl(265_44%_15%)] overflow-hidden">
       <div
         className="h-full rounded-full transition-all ease-out"
         style={{
@@ -48,8 +48,8 @@ export default function VestingPreview() {
     <section className="relative py-36 overflow-hidden">
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-150 h-150 bg-[hsl(271_100%_64%/0.06)] rounded-full blur-[120px] pointer-events-none" />
       <div className="container mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+        <div className="grid lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-10 xl:gap-12 items-center">
+          <div className="min-w-0">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[hsl(271_100%_64%/0.3)] bg-[hsl(271_100%_64%/0.08)] mb-6">
               <div className="glow-dot" />
               <span className="text-xs font-semibold text-[hsl(var(--primary))] uppercase tracking-widest">Live Dashboard</span>
@@ -63,14 +63,14 @@ export default function VestingPreview() {
             </p>
             {[
               { icon: TrendingUp, text: "Interactive unlock charts with historical data" },
-              { icon: Users,      text: "Manage 1 to 10,000+ recipients effortlessly"   },
+              { icon: Users,      text: "Manage up to 100 Starter recipients effortlessly" },
               { icon: Calendar,   text: "Cliff & milestone alerts via email or webhook"  },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-3 mb-5">
+              <div key={text} className="flex items-start gap-3 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-[hsl(157_87%_51%/0.12)] border border-[hsl(157_87%_51%/0.2)] flex items-center justify-center shrink-0">
                   <Icon className="w-4 h-4 text-[hsl(var(--accent))]" />
                 </div>
-                <span className="text-foreground text-sm font-medium font-body">{text}</span>
+                <span className="min-w-0 text-foreground text-sm font-medium leading-relaxed font-body">{text}</span>
               </div>
             ))}
             <button
@@ -82,14 +82,14 @@ export default function VestingPreview() {
             </button>
           </div>
 
-          <div className="glass-card rounded-2xl overflow-hidden border border-[hsl(265_40%_20%/0.6)]">
+          <div className="glass-card min-w-0 rounded-2xl overflow-hidden border border-[hsl(265_40%_20%/0.6)]">
             <div className="flex items-center gap-2 px-5 py-3.5 border-b border-[hsl(265_40%_20%/0.5)]">
               <div className="w-2.5 h-2.5 rounded-full bg-[hsl(0_80%_60%)]" />
               <div className="w-2.5 h-2.5 rounded-full bg-[hsl(40_90%_60%)]" />
               <div className="w-2.5 h-2.5 rounded-full bg-[hsl(120_60%_50%)]" />
               <div className="ml-4 flex-1 h-5 bg-[hsl(265_44%_15%)] rounded-md" />
             </div>
-            <div className="grid grid-cols-4 text-xs uppercase tracking-widest text-muted-foreground px-5 py-3 border-b border-[hsl(265_40%_20%/0.4)]">
+            <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(5.25rem,0.8fr)_minmax(5.75rem,1fr)_minmax(4.5rem,0.7fr)] gap-3 px-4 sm:px-5 py-3 text-xs uppercase tracking-widest text-muted-foreground border-b border-[hsl(265_40%_20%/0.4)]">
               <span>Schedule</span>
               <span className="text-right">Amount</span>
               <span className="text-center">Progress</span>
@@ -98,18 +98,18 @@ export default function VestingPreview() {
             {vestingRows.map(({ name, amount, token, pct, status, color }) => (
               <div
                 key={name}
-                className="grid grid-cols-4 items-center px-5 py-3.5 border-b border-[hsl(265_40%_20%/0.25)] hover:bg-[hsl(265_44%_15%/0.4)] transition-colors group"
+                className="grid grid-cols-[minmax(0,1.35fr)_minmax(5.25rem,0.8fr)_minmax(5.75rem,1fr)_minmax(4.5rem,0.7fr)] items-center gap-3 px-4 sm:px-5 py-3.5 border-b border-[hsl(265_40%_20%/0.25)] hover:bg-[hsl(265_44%_15%/0.4)] transition-colors group"
               >
-                <div>
-                  <p className="text-xs font-semibold text-foreground truncate max-w-30">{name}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold text-foreground">{name}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-mono font-bold" style={{ color }}>{amount}</p>
+                <div className="min-w-0 text-right">
+                  <p className="truncate text-xs font-mono font-bold tabular-nums" style={{ color }}>{amount}</p>
                   <p className="text-[10px] text-muted-foreground">{token}</p>
                 </div>
-                <div className="flex flex-col items-center gap-1">
+                <div className="min-w-0 flex flex-col items-stretch gap-1">
                   <AnimatedBar pct={pct} color={color} />
-                  <span className="text-[10px] text-muted-foreground">{pct}%</span>
+                  <span className="text-center text-[10px] text-muted-foreground">{pct}%</span>
                 </div>
                 <div className="flex justify-end">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusColor[status]}`}>

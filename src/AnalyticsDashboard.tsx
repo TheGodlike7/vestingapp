@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { toast } from "@/components/ui/sonner-toast";
-import { FolderOpen, Calendar, Users, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Calendar, FolderOpen, Lock, Users, Zap } from "lucide-react";
 import { LineChart, BarChart, Bar, Line, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
@@ -10,6 +10,15 @@ import {
 } from "@/components/ui/chart.tsx";
 
 import { Tooltip, ResponsiveContainer } from "recharts";
+import { ThemeToggle } from "./ThemeToggle";
+import {
+  backendActivityFilters,
+  filterBackendActivity,
+  formatTransactionSignature,
+  getStatusClass,
+  type BackendActivityStatus,
+  type ProcessedTx,
+} from "./analyticsActivity";
 
 type VestingSchedule = {
   id: string;
@@ -33,16 +42,6 @@ type ClaimWithProject = {
   }[];
 };
 
-type ProcessedTx = {
-  wallet: string | null;
-  signature: string;
-  status: string;
-  retry_count: number | null;
-  created_at: string;
-};
-
-const backendActivityFilters = ["all", "completed", "failed"] as const;
-
 export default function AnalyticsDashboard() {
   const [chartData, setChartData] = useState<{ date: string; total: number }[]>(
     [],
@@ -56,7 +55,7 @@ export default function AnalyticsDashboard() {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [projectCount, setProjectCount] = useState(0);
   const [processedTxs, setProcessedTxs] = useState<ProcessedTx[]>([]);
-  const [filter, setFilter] = useState<"all" | "completed" | "failed">("all");
+  const [filter, setFilter] = useState<BackendActivityStatus>("all");
 
   const totalTx = processedTxs.length;
 
@@ -70,10 +69,8 @@ export default function AnalyticsDashboard() {
 
   const totalRevenue = successTx * 99;
 
-  const filteredTxs =
-    filter === "all"
-      ? processedTxs
-      : processedTxs.filter((tx) => tx.status === filter);
+  const filteredTxs = filterBackendActivity(processedTxs, filter);
+  const previewTxs = filteredTxs.slice(0, 6);
 
   const fraudTxs = processedTxs.filter(
     (tx) => tx.status === "failed" && (tx.retry_count || 0) === 0,
@@ -349,10 +346,58 @@ export default function AnalyticsDashboard() {
   }, []);
 
   return (
-    <>
-      <div className="space-y-8">
+    <div
+      className="min-h-screen relative"
+      style={{ background: "var(--gradient-hero)" }}
+    >
+      <div className="absolute inset-0 mesh-bg opacity-20 pointer-events-none" />
+      <div
+        className="absolute top-[-10%] left-1/2 h-96 w-[34rem] -translate-x-1/2 rounded-full blur-[100px] pointer-events-none"
+        style={{ background: "hsl(var(--primary) / 0.12)" }}
+      />
+
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <div className="mb-8 flex items-center justify-between border-b border-[hsl(265_40%_20%/0.5)] pb-6">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = "/dashboard";
+              }}
+              className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Dashboard
+            </button>
+            <a href="/" className="flex items-center gap-2">
+              <div className="relative h-7 w-7">
+                <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80" />
+                <Zap className="absolute inset-0 m-auto h-3.5 w-3.5 text-white" />
+              </div>
+              <span className="hidden font-display text-lg font-bold text-foreground sm:block">
+                Vesting<span className="gradient-text">App</span>
+              </span>
+            </a>
+          </div>
+          <ThemeToggle />
+        </div>
+
+        <div className="mb-8">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-[hsl(271_100%_64%/0.26)] bg-[hsl(271_100%_64%/0.08)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-[hsl(var(--primary))]">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Analytics
+          </p>
+          <h1 className="font-display text-3xl font-bold text-foreground">
+            Analytics Dashboard
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Monitor project activity, claims, revenue signals, backend payment status, and risk indicators.
+          </p>
+        </div>
+
+        <div className="space-y-8">
         {/* Stats */}
-        <div className="grid grid-cols-8 lg:grid-cols-8 gap-6 mb-10">
+        <div className="mx-auto mb-10 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           {[
             {
               label: "Active Projects",
@@ -379,16 +424,17 @@ export default function AnalyticsDashboard() {
               color: "text-[hsl(var(--accent))]",
             },
           ].map((stat) => (
-            <div key={stat.label} className="stat-card">
-              <stat.icon
-                className={`w-6 h-5 mx-auto mb-4 ${stat.color} stat-icon`}
-              />
-              <div
-                className={`text-2xl font-bold font-display mb-2 ${stat.color}`}
-              >
+            <div
+              key={stat.label}
+              className="glass-card flex min-h-32 flex-col items-center justify-center rounded-2xl px-3 py-4 text-center transition hover:border-[hsl(var(--primary)/0.34)]"
+            >
+              <stat.icon className={`mb-3 h-5 w-5 ${stat.color}`} />
+              <div className={`mb-1 font-display text-2xl font-bold ${stat.color}`}>
                 {stat.value}
               </div>
-              <div className="text-muted-foreground text-xs">{stat.label}</div>
+              <div className="max-w-24 text-balance text-xs font-semibold leading-4 text-muted-foreground">
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
@@ -525,80 +571,74 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
       <div className="glass-card rounded-2xl p-6 mb-8">
-        <h2 className="font-display text-lg font-semibold text-foreground mb-4">
-          Live Backend Activity
-        </h2>
-        <div className="flex gap-2 mb-4">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-foreground">
+              Live Backend Activity
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Recent processed payment transactions. Open the full activity page
+              to search and load every transaction.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = "/analytics/activity";
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[hsl(265_40%_26%)] px-4 text-sm font-semibold text-muted-foreground transition hover:border-[hsl(var(--primary)/0.45)] hover:text-foreground"
+          >
+            View all activity
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mb-5 flex flex-wrap gap-2">
           {backendActivityFilters.map((f) => (
             <button
               key={f}
+              type="button"
               onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold 
-            ${
-              filter === f
-                ? "bg-[hsl(var(--primary))] text-white"
-                : "bg-[hsl(265_40%_20%)] text-muted-foreground"
-            }`}
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                filter === f
+                  ? "bg-[hsl(var(--primary))] text-white"
+                  : "bg-[hsl(265_40%_20%)] text-muted-foreground hover:text-foreground"
+              }`}
             >
               {f}
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="glass-card p-4 rounded-xl">
-            <p className="text-xs text-muted-foreground">Revenue</p>
-            <p className="text-xl font-bold text-green-400">${totalRevenue}</p>
-          </div>
-
-          <div className="glass-card p-4 rounded-xl">
-            <p className="text-xs text-muted-foreground">Success Rate</p>
-            <p className="text-xl font-bold text-foreground">{successRate}%</p>
-          </div>
-
-          <div className="glass-card p-4 rounded-xl">
-            <p className="text-xs text-muted-foreground">Completed</p>
-            <p className="text-xl font-bold text-green-400">{successTx}</p>
-          </div>
-
-          <div className="glass-card p-4 rounded-xl">
-            <p className="text-xs text-muted-foreground">Failed</p>
-            <p className="text-xl font-bold text-red-400">{failedTx}</p>
-          </div>
-        </div>
 
         <div className="space-y-3">
           {processedTxs.length === 0 ? (
             <p className="text-muted-foreground text-sm">No activity yet</p>
+          ) : previewTxs.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No activity matching this filter
+            </p>
           ) : (
-            filteredTxs.map((tx) => (
+            previewTxs.map((tx) => (
               <div
                 key={tx.signature}
-                className="flex justify-between items-center text-sm"
+                className="flex items-center justify-between gap-4 rounded-xl border border-[hsl(265_40%_18%)] bg-[hsl(265_40%_12%/0.5)] px-3 py-3 text-sm"
               >
-                <div>
-                  <p className="font-mono text-xs">
-                    {tx.signature.slice(0, 8)}...
+                <div className="min-w-0">
+                  <p className="font-mono text-xs text-foreground" title={tx.signature}>
+                    {formatTransactionSignature(tx.signature)}
                   </p>
                   <p className="text-muted-foreground text-xs">
                     {new Date(tx.created_at).toLocaleString()}
                   </p>
                 </div>
 
-                <div className="text-right">
-                  <p
-                    className={`font-bold ${
-                      tx.status === "completed"
-                        ? "text-green-400"
-                        : tx.status === "failed"
-                          ? "text-red-400"
-                          : "text-yellow-400"
-                    }`}
-                  >
+                <div className="shrink-0 text-right">
+                  <p className={`font-bold capitalize ${getStatusClass(tx.status)}`}>
                     {tx.status}
                   </p>
 
                   <p className="text-xs text-muted-foreground">
-                    retries: {tx.retry_count || 0}
+                    retries: {tx.retry_count ?? 0}
                   </p>
                 </div>
               </div>
@@ -620,7 +660,7 @@ export default function AnalyticsDashboard() {
           ) : (
             fraudTxs.map((tx) => (
               <div key={tx.signature} className="text-sm flex justify-between">
-                <span className="font-mono">{tx.signature.slice(0, 8)}...</span>
+                <span className="font-mono">{formatTransactionSignature(tx.signature)}</span>
                 <span className="text-red-400">FAILED</span>
               </div>
             ))
@@ -644,6 +684,7 @@ export default function AnalyticsDashboard() {
           ))}
         </div>
       </div>
-    </>
+      </div>
+    </div>
   );
 }

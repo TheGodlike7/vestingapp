@@ -19,6 +19,8 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+type SubscriptionNetwork = "mainnet-beta" | "devnet";
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -33,6 +35,14 @@ function readRequiredEnv(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`${name} is not configured`);
   return value;
+}
+
+function readSolanaNetwork(): SubscriptionNetwork {
+  return Deno.env.get("SOLANA_NETWORK")?.toLowerCase() === "devnet" ? "devnet" : "mainnet-beta";
+}
+
+function subscriptionAmountForNetwork(network: SubscriptionNetwork): number {
+  return network === "devnet" ? 0.1 : 99;
 }
 
 function normalizeWalletAddress(value: unknown): string {
@@ -68,8 +78,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const SUPABASE_SERVICE_ROLE_KEY = readRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
     const BUSINESS_WALLET = readRequiredEnv("BUSINESS_WALLET");
     const USDC_MINT = readRequiredEnv("USDC_MINT");
-    const SUBSCRIPTION_USDC_AMOUNT = Number(Deno.env.get("SUBSCRIPTION_USDC_AMOUNT") ?? "0.1");
-    const SOLANA_NETWORK = Deno.env.get("SOLANA_NETWORK") ?? "devnet";
+    const SOLANA_NETWORK = readSolanaNetwork();
+    const SUBSCRIPTION_USDC_AMOUNT = subscriptionAmountForNetwork(SOLANA_NETWORK);
 
     if (!Number.isFinite(SUBSCRIPTION_USDC_AMOUNT) || SUBSCRIPTION_USDC_AMOUNT <= 0) {
       throw new Error("SUBSCRIPTION_USDC_AMOUNT is invalid");

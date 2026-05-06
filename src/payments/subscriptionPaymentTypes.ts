@@ -21,6 +21,7 @@ export type CreateSubscriptionPaymentResponse = {
 export type WalletOption = {
   name: WalletName
   label: string
+  icon: string
   readyState: WalletReadyState
   selected: boolean
   connected: boolean

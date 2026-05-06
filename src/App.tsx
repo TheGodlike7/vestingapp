@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { WalletContextProvider } from "./WalletProvider.tsx";
 import { supabase } from "./supabase.ts";
 import { Zap, Wallet, Inbox, TrendingUp } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle.tsx";
-import { Connection, Transaction } from "@solana/web3.js";
 import { ClaimOnboardingGuide } from "./components/onboarding/ClaimOnboardingGuide.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
-import { toast } from "./components/ui/sonner-toast.ts";
 import { useSubscription } from "./hooks/usesubscription.ts";
 
 // 🔥 NEW IMPORT (will use later when you create it)
@@ -45,15 +43,28 @@ type ClaimHistory = {
   claimed_at: string;
 };
 
+const CLAIMS_HAVE_SECURE_ONCHAIN_PATH = false;
+
 export function ClaimPage() {
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey } = useWallet();
   const [schedules, setSchedules] = useState<VestingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<ClaimHistory[]>([]);
-  const [claimingId, setClaimingId] = useState<string | null>(null);
-  const connection = new Connection("https://api.devnet.solana.com");
+  const claimingId: string | null = null;
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const fetchSchedules = async (wallet: string) => {
+  const claimsEnabled = CLAIMS_HAVE_SECURE_ONCHAIN_PATH && import.meta.env.VITE_CLAIMS_ENABLED === 'true';
+
+  const fetchHistory = useCallback(async (scheduleId: string) => {
+    const { data } = await supabase
+      .from("claim_history")
+      .select("*")
+      .eq("schedule_id", scheduleId)
+      .order("claimed_at", { ascending: false });
+
+    if (data) setHistory(data);
+  }, []);
+
+  const fetchSchedules = useCallback(async (wallet: string) => {
     setLoading(true);
     const { data } = await supabase
       .from("vesting_schedules")
@@ -61,19 +72,28 @@ export function ClaimPage() {
       .eq("recipient_wallet", wallet)
       .eq("is_active", true);
 
-    if (data) setSchedules(data as VestingSchedule[]);
+    if (data) {
+      const nextSchedules = data as VestingSchedule[];
+      setSchedules(nextSchedules);
+      if (nextSchedules[0]) {
+        await fetchHistory(nextSchedules[0].id);
+      } else {
+        setHistory([]);
+      }
+    }
     setLoading(false);
-  };
+  }, [fetchHistory]);
 
   useEffect(() => {
     if (!publicKey) return;
 
-    const run = async () => {
-      await fetchSchedules(publicKey.toBase58());
-    };
+    const walletAddress = publicKey.toBase58();
+    const timer = window.setTimeout(() => {
+      void fetchSchedules(walletAddress);
+    }, 0);
 
-    run();
-  }, [publicKey]);
+    return () => window.clearTimeout(timer);
+  }, [fetchSchedules, publicKey]);
 
   const calculateVested = (schedule: VestingSchedule) => {
     const now = new Date();
@@ -148,16 +168,6 @@ export function ClaimPage() {
     return `Next unlock in ${days} days`;
   };
 
-  const fetchHistory = async (scheduleId: string) => {
-    const { data } = await supabase
-      .from("claim_history")
-      .select("*")
-      .eq("schedule_id", scheduleId)
-      .order("claimed_at", { ascending: false });
-
-    if (data) setHistory(data);
-  };
-
   return (
     <div
       className="min-h-screen relative"
@@ -200,6 +210,14 @@ export function ClaimPage() {
             data-claim-guide="claim-status"
           >
             {statusMessage}
+          </div>
+        )}
+        {publicKey && !claimsEnabled && (
+          <div
+            className="mb-4 rounded-2xl border border-[hsl(45_90%_60%/0.32)] bg-[hsl(45_90%_60%/0.1)] px-5 py-4 text-sm text-[hsl(45_90%_72%)]"
+            data-claim-guide="claim-status"
+          >
+            Claiming is temporarily disabled while the secure mainnet claim path is finalized. You can still review vesting schedules.
           </div>
         )}
         {!publicKey ? (
@@ -332,77 +350,28 @@ export function ClaimPage() {
                   {/* Claim */}
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (!publicKey || !signTransaction) return;
-
-                      let toastId: string | number | undefined;
-
-                      try {
-                        setClaimingId(schedule.id);
-                        setStatusMessage(null);
-
-                        toastId = toast.loading("Processing claim...");
-
-                        const transaction = new Transaction();
-
-                        transaction.feePayer = publicKey;
-
-                        const { blockhash } =
-                          await connection.getLatestBlockhash();
-                        transaction.recentBlockhash = blockhash;
-
-                        const signedTx = await signTransaction(transaction);
-
-                        const txSig = await connection.sendRawTransaction(
-                          signedTx.serialize(),
-                        );
-
-                        await connection.confirmTransaction(txSig, "confirmed");
-
-                        const { error } = await supabase.rpc("claim_tokens", {
-                          p_schedule_id: schedule.id,
-                          p_amount: claimable,
-                          p_wallet: publicKey.toBase58(),
-                          p_tx_signature: txSig,
-                        });
-
-                        if (error) throw error;
-
-                        toast.success("Tokens claimed successfully", {
-                          id: toastId,
-                        });
-
-                        setStatusMessage("✅ Claim successful (on-chain)");
-                        await fetchSchedules(publicKey.toBase58());
-                        await fetchHistory(schedule.id);
-                      } catch (err) {
-                        const message =
-                          err instanceof Error ? err.message : "Claim failed";
-
-                        toast.error(message, {
-                          id: toastId,
-                        });
-
-                        setStatusMessage("❌ " + message);
-                      } finally {
-                        setClaimingId(null);
-                      }
+                    onClick={() => {
+                      setStatusMessage(
+                        "Claiming is temporarily disabled while the secure mainnet claim path is finalized.",
+                      );
                     }}
-                    disabled={claimable === 0 || claimingId === schedule.id}
+                    disabled={!claimsEnabled || claimable === 0 || claimingId === schedule.id}
                     data-claim-guide={index === 0 ? "claim-action" : undefined}
                     className={`w-full py-2 rounded ${
-                      claimable === 0 || claimingId === schedule.id
+                      !claimsEnabled || claimable === 0 || claimingId === schedule.id
                         ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                         : "bg-purple-500 text-white"
                     }`}
                   >
                     {claimingId === schedule.id
                       ? "Claiming..."
-                      : claimable > 0
-                        ? `Claim ${claimable} ${schedule.vesting_projects?.token_symbol}`
-                        : claimed >= schedule.total_amount
-                          ? "Fully claimed"
-                          : "Nothing to claim"}
+                      : !claimsEnabled
+                        ? "Claiming temporarily disabled"
+                        : claimable > 0
+                          ? `Claim ${claimable} ${schedule.vesting_projects?.token_symbol}`
+                          : claimed >= schedule.total_amount
+                            ? "Fully claimed"
+                            : "Nothing to claim"}
                   </button>
                   <div className="mt-4" data-claim-guide={index === 0 ? "claim-history" : undefined}>
                     <p className="text-xs text-muted-foreground mb-2">

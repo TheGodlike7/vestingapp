@@ -2,7 +2,9 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
+  BarChart3,
   Building2,
+  ArrowRight,
   CheckCircle2,
   ChevronDown,
   CreditCard,
@@ -14,7 +16,6 @@ import {
   Zap,
 } from "lucide-react";
 import { CreateProjectModal } from "./CreateProjectModal.tsx";
-import CreateOrganization from "./CreateOrganization.tsx";
 import { OnboardingGuide } from "./components/onboarding/OnboardingGuide.tsx";
 import { ThemeToggle } from "./ThemeToggle.tsx";
 import { supabase } from "./supabase";
@@ -82,13 +83,6 @@ function AdminDashboardContent() {
 
     return data ?? null;
   }, []);
-
-  const refreshOrganization = useCallback(async () => {
-    if (!activeWalletAddress) return;
-
-    const nextOrganization = await fetchOrganizationForWallet(activeWalletAddress);
-    setOrganization(nextOrganization);
-  }, [activeWalletAddress, fetchOrganizationForWallet]);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,13 +245,27 @@ function AdminDashboardContent() {
           </div>
         </div>
 
-        <div className="mb-9">
-          <h1 className="font-display text-3xl md:text-3xl font-bold text-foreground">
-            Dashboard
-          </h1>
-          <p className="text-muted-foreground text-sm mt-2">
-            Manage your vesting projects and schedules
-          </p>
+        <div className="mb-9 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="font-display text-3xl md:text-3xl font-bold text-foreground">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground text-sm mt-2">
+              Manage your vesting projects and schedules
+            </p>
+          </div>
+
+          <button
+            type="button"
+            data-onboard="analytics-link"
+            onClick={() => {
+              window.location.href = "/analytics";
+            }}
+            className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-[hsl(265_40%_24%)] bg-[hsl(265_44%_15%/0.45)] px-4 py-2 text-sm font-bold text-foreground transition hover:border-[hsl(var(--primary))] hover:bg-[hsl(265_44%_15%/0.65)]"
+          >
+            <BarChart3 className="h-4 w-4 text-[hsl(var(--accent))]" />
+            Analytics
+          </button>
         </div>
 
         <div
@@ -318,35 +326,38 @@ function AdminDashboardContent() {
         </div>
 
         <div data-onboard="organization-card" className="mb-8">
-          {activeOrganization ? (
-            <div className="rounded-2xl border border-[hsl(265_40%_22%)] bg-[hsl(265_35%_10%/0.72)] p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[hsl(157_87%_51%/0.25)] bg-[hsl(157_87%_51%/0.08)]">
-                    <Building2 className="h-5 w-5 text-[hsl(var(--accent))]" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground">
-                      Organization
-                    </p>
-                    <h2 className="font-display text-lg font-bold text-foreground">
-                      {activeOrganization.name}
-                    </h2>
-                  </div>
+          <div className="rounded-2xl border border-[hsl(265_40%_22%)] bg-[hsl(265_35%_10%/0.72)] p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[hsl(157_87%_51%/0.25)] bg-[hsl(157_87%_51%/0.08)]">
+                  <Building2 className="h-5 w-5 text-[hsl(var(--accent))]" />
                 </div>
-                <div className="flex items-center gap-2 rounded-full border border-[hsl(157_87%_51%/0.26)] bg-[hsl(157_87%_51%/0.08)] px-3 py-1.5 text-xs font-semibold text-[hsl(var(--accent))]">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Home base ready
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    Organization
+                  </p>
+                  <h2 className="font-display text-lg font-bold text-foreground">
+                    {activeOrganization ? activeOrganization.name : "Create your organization"}
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {activeOrganization
+                      ? "Your home base is ready for projects, schedules, and recipients."
+                      : "Open the organization setup page to create your workspace home base."}
+                  </p>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/organization";
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[hsl(265_40%_24%)] px-4 py-2 text-sm font-bold text-foreground transition hover:border-[hsl(var(--primary))] hover:bg-[hsl(265_44%_15%/0.55)]"
+              >
+                {activeOrganization ? "Manage organization" : "Create organization"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
             </div>
-          ) : (
-            <CreateOrganization
-              onCreated={() => {
-                void refreshOrganization();
-              }}
-            />
-          )}
+          </div>
         </div>
 
         <div

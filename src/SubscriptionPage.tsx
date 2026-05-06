@@ -73,6 +73,7 @@ function SubscriptionContent() {
         return {
           name: adapter.name,
           label: adapter.name,
+          icon: adapter.icon,
           readyState,
           selected,
           connected: connected && selected,
@@ -346,7 +347,7 @@ function SubscriptionContent() {
               <span className="text-muted-foreground">/month</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              Crypto test charge: {formatUsdc(SUBSCRIPTION_PAYMENT_CONFIG.amountUsdc)} USDC
+              Crypto charge: {formatUsdc(SUBSCRIPTION_PAYMENT_CONFIG.amountUsdc)} USDC
             </p>
             {solPrice > 0 && (
               <p className="text-muted-foreground text-sm">Approximately {solAmount} SOL at current price</p>

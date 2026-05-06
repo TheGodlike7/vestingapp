@@ -15,11 +15,11 @@ interface VestingScheduleForm {
 export function AdminPanel() {
   const { publicKey } = useWallet();
   useConnection();
-  // List of admin wallet addresses (YOUR wallets)
-  const ADMIN_WALLETS = [
-    'DbiGhLSemaRXB9jmY6s3PZfPzwYDpwozJo5uKux6nnE9', // Your devnet wallet
-    // Add your mainnet wallet here later
- ];
+  const ADMIN_WALLETS = (import.meta.env.VITE_ADMIN_WALLETS ?? '')
+    .split(',')
+    .map((wallet: string) => wallet.trim())
+    .filter(Boolean);
+  const ADMIN_API_BASE_URL = import.meta.env.VITE_ADMIN_API_BASE_URL as string | undefined;
 
   const isAdmin = publicKey ? ADMIN_WALLETS.includes(publicKey.toBase58()) : false;
   const [formData, setFormData] = useState<VestingScheduleForm>({
@@ -34,7 +34,7 @@ export function AdminPanel() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!publicKey) {
       alert('Please connect your wallet');
       return;
@@ -45,9 +45,12 @@ export function AdminPanel() {
     try {
       console.log('Creating vesting schedule:', formData);
 
-      // TODO: Replace with actual Bonfida contract call
-      // For now, save to backend
-      const response = await fetch('http://localhost:8000/admin/create-schedule', {
+      if (!ADMIN_API_BASE_URL) {
+        alert('Admin schedule API is not configured for this environment.');
+        return;
+      }
+
+      const response = await fetch(`${ADMIN_API_BASE_URL}/admin/create-schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -120,7 +123,7 @@ export function AdminPanel() {
           <div className="admin-content">
         <div className="create-schedule-card">
           <h2>Create New Vesting Schedule</h2>
-          
+
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Beneficiary Wallet Address *</label>
@@ -187,8 +190,8 @@ export function AdminPanel() {
               />
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="create-button"
               disabled={creating}
             >

@@ -133,10 +133,20 @@ const MEMO_PREFIX = "vestingapp-starter-";
 const USDC_DECIMALS = 6;
 const MAX_MONTHS_PER_TRANSACTION = 12;
 
+type SubscriptionNetwork = "mainnet-beta" | "devnet";
+
 function readRequiredEnv(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`${name} is not configured`);
   return value;
+}
+
+function readSolanaNetwork(): SubscriptionNetwork {
+  return Deno.env.get("SOLANA_NETWORK")?.toLowerCase() === "devnet" ? "devnet" : "mainnet-beta";
+}
+
+function subscriptionAmountForNetwork(network: SubscriptionNetwork): number {
+  return network === "devnet" ? 0.1 : 99;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -335,10 +345,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   try {
     const SUPABASE_URL = readRequiredEnv("SUPABASE_URL");
     const SERVICE_KEY = readRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const RPC_URL = Deno.env.get("SOLANA_RPC_URL") ?? "https://api.devnet.solana.com";
+    const RPC_URL = readRequiredEnv("SOLANA_RPC_URL");
     const USDC_MINT = readRequiredEnv("USDC_MINT");
     const BUSINESS_WALLET = readRequiredEnv("BUSINESS_WALLET");
-    const REQUIRED_AMOUNT = Number(Deno.env.get("SUBSCRIPTION_USDC_AMOUNT") ?? "0.1");
+    const SOLANA_NETWORK = readSolanaNetwork();
+    const REQUIRED_AMOUNT = subscriptionAmountForNetwork(SOLANA_NETWORK);
     const requiredAtomic = amountToAtomic(REQUIRED_AMOUNT, USDC_DECIMALS);
 
     if (requiredAtomic <= 0n) {

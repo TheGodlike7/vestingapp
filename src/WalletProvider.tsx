@@ -24,8 +24,12 @@ function uniqueAllowedAdapters(adapters: Adapter[]): Adapter[] {
   })
 }
 
+function resolveWalletNetwork(value: string | undefined): WalletAdapterNetwork {
+  return value?.toLowerCase() === 'devnet' ? WalletAdapterNetwork.Devnet : WalletAdapterNetwork.Mainnet
+}
+
 export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
-  const network = WalletAdapterNetwork.Devnet
+  const network = resolveWalletNetwork(import.meta.env.VITE_SOLANA_NETWORK)
   const standardAdapters = useStandardWalletAdapters([])
   const endpoint = useMemo(
     () => import.meta.env.VITE_SOLANA_RPC_URL ?? clusterApiUrl(network),

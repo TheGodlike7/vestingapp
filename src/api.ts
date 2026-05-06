@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined
 
 export interface WalletData {
   wallet: string;
@@ -7,9 +7,21 @@ export interface WalletData {
   last_updated: string;
 }
 
+function apiUrl(path: string): string | null {
+  if (!API_BASE_URL) {
+    console.warn('VITE_API_BASE_URL is not configured.');
+    return null;
+  }
+
+  return `${API_BASE_URL}${path}`;
+}
+
 export async function getWalletFromDB(address: string): Promise<WalletData | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/wallet/${address}`);
+    const url = apiUrl(`/wallet/${address}`);
+    if (!url) return null;
+
+    const response = await fetch(url);
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {
@@ -20,7 +32,10 @@ export async function getWalletFromDB(address: string): Promise<WalletData | nul
 
 export async function getWalletLive(address: string): Promise<unknown> {
   try {
-    const response = await fetch(`${API_BASE_URL}/wallet/${address}/live`);
+    const url = apiUrl(`/wallet/${address}/live`);
+    if (!url) return null;
+
+    const response = await fetch(url);
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {

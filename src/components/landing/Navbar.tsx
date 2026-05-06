@@ -21,8 +21,8 @@ export default function Navbar() {
 
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${scrolled ? "py-3 bg-[hsl(275_68%_5%/0.85)] backdrop-blur-xl border-b border-[hsl(265_40%_20%/0.5)]" : "py-5 bg-transparent"}`}>
-      <nav className="container mx-auto px-6 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-2.5 group">
+      <nav className="container mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
+        <a href="/" className="flex shrink-0 items-center gap-2.5 group">
           <div className="relative w-8 h-8">
             <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] opacity-80 group-hover:opacity-100 transition-opacity" />
             <div className="absolute inset-0 rounded-lg bg-linear-to-br from-[hsl(var(--primary))] to-[hsl(var(--accent))] blur-md opacity-50 group-hover:opacity-80 transition-opacity" />
@@ -32,29 +32,29 @@ export default function Navbar() {
             Vesting<span className="gradient-text">App</span>
           </span>
         </a>
-        <ul className="hidden md:flex items-center gap-1">
+        <ul className="hidden lg:flex items-stretch gap-1">
           {navLinks.map((link) => (
             <li key={link.label}>
-              <a href={link.href} className="nav-item px-4 py-2 rounded-lg text-sm font-medium hover:bg-[hsl(265_44%_15%/0.6)] transition-all duration-200">
+              <a href={link.href} className="nav-item inline-flex h-11 items-center justify-center rounded-lg px-4 text-center text-sm font-medium leading-none whitespace-nowrap hover:bg-[hsl(265_44%_15%/0.6)] transition-all duration-200">
                 {link.label}
               </a>
             </li>
           ))}
         </ul>
-        <div className="hidden md:flex items-center gap-3">
-          <button onClick={() => window.location.href = '/login'} className="btn-outline px-5 py-2 rounded-lg text-sm font-semibold">
+        <div className="hidden lg:flex shrink-0 items-center gap-3">
+          <button onClick={() => window.location.href = '/login'} className="btn-outline inline-flex h-11 min-w-24 items-center justify-center rounded-lg px-5 text-sm font-semibold whitespace-nowrap">
             Sign In
           </button>
-          <button onClick={() => window.location.href = '/login'} className="btn-accent px-5 py-2 rounded-lg text-sm font-bold">
+          <button onClick={() => window.location.href = '/login'} className="btn-accent inline-flex h-11 min-w-30 items-center justify-center rounded-lg px-5 text-sm font-bold whitespace-nowrap">
             Get Started
           </button>
         </div>
-        <button className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileOpen((v) => !v)}>
+        <button className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMobileOpen((v) => !v)}>
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </nav>
       {mobileOpen && (
-        <div className="md:hidden mx-4 mt-1 rounded-xl border border-[hsl(265_40%_20%/0.8)] bg-[hsl(275_68%_5%/0.98)] backdrop-blur-xl shadow-2xl">
+        <div className="lg:hidden mx-4 mt-1 rounded-xl border border-[hsl(265_40%_20%/0.8)] bg-[hsl(275_68%_5%/0.98)] backdrop-blur-xl shadow-2xl">
           <ul className="flex flex-col gap-0.5 p-2 mb-0">
             {navLinks.map((link) => (
               <li key={link.label}>

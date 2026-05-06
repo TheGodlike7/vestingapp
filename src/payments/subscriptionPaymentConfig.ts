@@ -1,12 +1,37 @@
-export const SUBSCRIPTION_PAYMENT_CONFIG = {
+type SubscriptionPaymentConfig = {
+  allowedWalletKeywords: readonly string[]
+  businessWallet: string | undefined
+  usdcMint: string
+  priceLabel: string
+  amountUsdc: number
+  networkLabel: string
+  lockTtlMs: number
+  claimsEnabled: boolean
+}
+
+type SubscriptionNetwork = 'mainnet-beta' | 'devnet'
+
+function readNetwork(): SubscriptionNetwork {
+  return import.meta.env.VITE_SOLANA_NETWORK?.toLowerCase() === 'devnet' ? 'devnet' : 'mainnet-beta'
+}
+
+function amountForNetwork(network: SubscriptionNetwork): number {
+  return network === 'devnet' ? 0.1 : 99
+}
+
+const networkLabel = readNetwork()
+const CLAIMS_HAVE_SECURE_ONCHAIN_PATH = false
+
+export const SUBSCRIPTION_PAYMENT_CONFIG: SubscriptionPaymentConfig = {
   allowedWalletKeywords: ['phantom', 'solflare', 'metamask', 'binance', 'okx', 'jupiter'],
   businessWallet: import.meta.env.VITE_BUSINESS_WALLET as string | undefined,
-  usdcMint: import.meta.env.VITE_USDC_MINT ?? 'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr',
+  usdcMint: import.meta.env.VITE_USDC_MINT ?? 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
   priceLabel: import.meta.env.VITE_SUBSCRIPTION_PRICE_LABEL ?? '$99',
-  amountUsdc: Number(import.meta.env.VITE_SUBSCRIPTION_AMOUNT_USDC ?? '0.1'),
-  networkLabel: import.meta.env.VITE_SOLANA_NETWORK ?? 'devnet',
+  amountUsdc: amountForNetwork(networkLabel),
+  networkLabel,
   lockTtlMs: 15 * 60 * 1000,
-} as const
+  claimsEnabled: CLAIMS_HAVE_SECURE_ONCHAIN_PATH && import.meta.env.VITE_CLAIMS_ENABLED === 'true',
+}
 
 export function isAllowedSubscriptionWallet(name?: string): boolean {
   if (!name) return false
@@ -15,6 +40,10 @@ export function isAllowedSubscriptionWallet(name?: string): boolean {
 }
 
 export function formatUsdc(amount: number): string {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 'Not configured'
+  }
+
   return new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 6,
     minimumFractionDigits: amount < 1 ? 1 : 0,

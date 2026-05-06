@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BarChart3,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -43,6 +44,7 @@ const STORAGE_PREFIX = "vestingapp:onboarding-completed";
 const OPEN_DELAY_MS = 800;
 const SPOTLIGHT_PADDING = 10;
 const CARD_WIDTH = 420;
+const CARD_HEIGHT_ESTIMATE = 340;
 const VIEWPORT_GAP = 18;
 
 const steps: OnboardingStep[] = [
@@ -65,7 +67,7 @@ const steps: OnboardingStep[] = [
     id: "organization",
     kicker: "Step 2",
     title: "Build your home base",
-    body: "Create your organization so future vesting projects have a clean operational home.",
+    body: "Open the organization setup page to create the home base for your future vesting projects.",
     selector: '[data-onboard="organization-card"]',
     icon: Sparkles,
   },
@@ -84,6 +86,14 @@ const steps: OnboardingStep[] = [
     body: "Open a project to add recipients, configure vesting schedules, and let holders claim from the portal.",
     selector: '[data-onboard="project-list"]',
     icon: CheckCircle2,
+  },
+  {
+    id: "analytics",
+    kicker: "Step 5",
+    title: "Track the mission",
+    body: "Open analytics to monitor active projects, schedules, recipients, backend activity, and claim/revenue signals as your workspace grows.",
+    selector: '[data-onboard="analytics-link"]',
+    icon: BarChart3,
   },
   {
     id: "complete",
@@ -256,24 +266,31 @@ export function OnboardingGuide({ userId }: OnboardingGuideProps) {
   }, [spotlightRect]);
 
   const cardStyle = useMemo<CSSProperties>(() => {
+    const cardWidth = Math.min(CARD_WIDTH, Math.max(280, window.innerWidth - VIEWPORT_GAP * 2));
+    const maxLeft = Math.max(VIEWPORT_GAP, window.innerWidth - cardWidth - VIEWPORT_GAP);
+    const maxTop = Math.max(VIEWPORT_GAP, window.innerHeight - CARD_HEIGHT_ESTIMATE - VIEWPORT_GAP);
+
     if (!spotlightRect) {
       return {
-        left: "50%",
-        top: "50%",
-        transform: "translate(-50%, -50%)",
+        left: clamp((window.innerWidth - cardWidth) / 2, VIEWPORT_GAP, maxLeft),
+        top: clamp((window.innerHeight - CARD_HEIGHT_ESTIMATE) / 2, VIEWPORT_GAP, maxTop),
+        width: cardWidth,
+        maxHeight: "calc(100dvh - 2rem)",
       };
     }
 
     const belowTop = spotlightRect.top + spotlightRect.height + VIEWPORT_GAP;
-    const aboveTop = spotlightRect.top - 300 - VIEWPORT_GAP;
-    const top = belowTop + 300 < window.innerHeight ? belowTop : Math.max(VIEWPORT_GAP, aboveTop);
+    const aboveTop = spotlightRect.top - CARD_HEIGHT_ESTIMATE - VIEWPORT_GAP;
+    const top = belowTop + CARD_HEIGHT_ESTIMATE < window.innerHeight
+      ? belowTop
+      : clamp(aboveTop, VIEWPORT_GAP, maxTop);
     const left = clamp(
-      spotlightRect.left + spotlightRect.width / 2 - CARD_WIDTH / 2,
+      spotlightRect.left + spotlightRect.width / 2 - cardWidth / 2,
       VIEWPORT_GAP,
-      window.innerWidth - CARD_WIDTH - VIEWPORT_GAP,
+      maxLeft,
     );
 
-    return { left, top, width: CARD_WIDTH };
+    return { left, top, width: cardWidth, maxHeight: "calc(100dvh - 2rem)" };
   }, [spotlightRect]);
 
   const ActiveIcon = activeStep.icon;
@@ -295,7 +312,7 @@ export function OnboardingGuide({ userId }: OnboardingGuideProps) {
       <button
         type="button"
         onClick={replay}
-        className="fixed bottom-5 right-5 z-[70] flex h-11 w-11 items-center justify-center rounded-full border border-[hsl(271_100%_64%/0.38)] bg-[hsl(265_35%_10%/0.9)] text-foreground shadow-2xl backdrop-blur-xl transition hover:border-[hsl(var(--accent))]"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+1.25rem)] right-4 sm:right-5 z-[70] flex h-11 w-11 items-center justify-center rounded-full border border-[hsl(271_100%_64%/0.38)] bg-[hsl(265_35%_10%/0.9)] text-foreground shadow-2xl backdrop-blur-xl transition hover:border-[hsl(var(--accent))]"
         title="Replay onboarding"
         aria-label="Replay onboarding"
       >
@@ -329,7 +346,7 @@ export function OnboardingGuide({ userId }: OnboardingGuideProps) {
             )}
 
             <motion.section
-              className="fixed w-[min(calc(100vw-2rem),420px)] overflow-hidden rounded-2xl border border-[hsl(265_40%_24%)] bg-[hsl(265_35%_8%/0.96)] text-foreground shadow-2xl backdrop-blur-xl"
+              className="fixed w-[min(calc(100vw-2rem),420px)] overflow-x-hidden overflow-y-auto rounded-2xl border border-[hsl(265_40%_24%)] bg-[hsl(265_35%_8%/0.96)] text-foreground shadow-2xl backdrop-blur-xl"
               style={cardStyle}
               initial={{ opacity: 0, scale: 0.94, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -346,7 +363,7 @@ export function OnboardingGuide({ userId }: OnboardingGuideProps) {
                 />
               </div>
 
-              <div className="relative p-5">
+              <div className="relative p-4 sm:p-5">
                 <div className="relative flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[hsl(271_100%_64%/0.26)] bg-[hsl(271_100%_64%/0.11)]">
@@ -356,7 +373,7 @@ export function OnboardingGuide({ userId }: OnboardingGuideProps) {
                       <p className="text-xs font-bold uppercase text-[hsl(var(--accent))]">
                         {activeStep.kicker}
                       </p>
-                      <h2 className="font-display text-xl font-bold leading-tight text-foreground">
+                      <h2 className="font-display text-lg sm:text-xl font-bold leading-tight text-foreground">
                         {activeStep.title}
                       </h2>
                     </div>
@@ -371,7 +388,7 @@ export function OnboardingGuide({ userId }: OnboardingGuideProps) {
                   </button>
                 </div>
 
-                <p className="relative mt-4 text-sm leading-6 text-muted-foreground">
+                <p className="relative mt-4 text-sm leading-6 text-muted-foreground break-words">
                   {activeStep.body}
                 </p>
 
@@ -393,7 +410,7 @@ export function OnboardingGuide({ userId }: OnboardingGuideProps) {
                   ))}
                 </div>
 
-                <div className="relative mt-6 flex items-center justify-between gap-3">
+                <div className="relative mt-6 flex flex-wrap items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={goBack}

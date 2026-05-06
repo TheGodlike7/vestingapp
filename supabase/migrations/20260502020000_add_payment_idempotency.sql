@@ -6,7 +6,7 @@ create table if not exists public.pending_payments (
   amount_usdc numeric(20, 6) not null,
   token_mint text not null,
   business_wallet text not null,
-  network text not null default 'devnet',
+  network text not null default 'mainnet-beta',
   tx_signature text,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null default (now() + interval '15 minutes'),
