@@ -168,7 +168,7 @@ export default function AnalyticsActivityPage() {
     >
       <div className="absolute inset-0 mesh-bg opacity-20 pointer-events-none" />
       <div
-        className="absolute top-[-10%] left-1/2 h-96 w-[34rem] -translate-x-1/2 rounded-full blur-[100px] pointer-events-none"
+        className="absolute top-[-10%] left-1/2 h-96 w-136 -translate-x-1/2 rounded-full blur-[100px] pointer-events-none"
         style={{ background: "hsl(var(--primary) / 0.12)" }}
       />
 

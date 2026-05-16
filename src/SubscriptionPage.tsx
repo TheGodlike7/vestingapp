@@ -288,7 +288,7 @@ function SubscriptionContent() {
                 <Zap className="absolute inset-0 m-auto w-3.5 h-3.5 text-white" />
               </div>
               <span className="font-display font-bold text-lg text-foreground hidden sm:block">
-                Vesting<span className="gradient-text">App</span>
+                Harvest<span className="gradient-text"></span>
               </span>
             </a>
           </div>
@@ -310,7 +310,7 @@ function SubscriptionContent() {
 
         <div className="mb-8">
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Subscription</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage your VestingApp plan</p>
+          <p className="text-muted-foreground text-sm mt-1">Manage your Harvest plan</p>
         </div>
 
         {subscription && (

@@ -78,7 +78,7 @@ export default function HowItWorksSection() {
             <span className="gradient-text">four steps</span>
           </h2>
           <p className="text-muted-foreground text-base md:text-lg font-body leading-relaxed">
-            No smart contract expertise needed. VestingApp handles the complexity so you can focus on your protocol.
+            No smart contract expertise needed. Harvest handles the complexity so you can focus on your protocol.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-7 max-w-4xl mx-auto">

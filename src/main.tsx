@@ -12,6 +12,8 @@ import { AdminDashboard } from './AdminDashboard.tsx'
 import { OrganizationPage } from './OrganizationPage.tsx'
 import AnalyticsDashboard from './AnalyticsDashboard.tsx'
 import AnalyticsActivityPage from './AnalyticsActivityPage.tsx'
+import AnalyticsProjectPage from './AnalyticsProjectPage.tsx'
+import ClaimerProjectAnalyticsPage from './ClaimerProjectAnalyticsPage.tsx'
 import { ProjectPage } from './ProjectPage.tsx'
 import { SuperAdmin } from './SuperAdmin.tsx'
 import { SubscriptionPage } from './SubscriptionPage.tsx'
@@ -19,6 +21,7 @@ import { ResetPasswordPage } from './ResetPasswordPage.tsx'
 import WebhookDashboard from './WebhookDashboard.tsx'
 import FraudDashboard from './FraudDashboard.tsx'
 import { ThemeProvider } from './ThemeContext.tsx'
+import { WalletContextProvider } from './WalletProvider.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -26,12 +29,14 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/claim" element={<ClaimPage />} />
+        <Route path="/claim" element={<WalletContextProvider><ClaimPage /></WalletContextProvider>} />
+        <Route path="/claim/analytics/project/:projectId" element={<WalletContextProvider><ClaimerProjectAnalyticsPage /></WalletContextProvider>} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/dashboard" element={<AdminDashboard />} />
         <Route path="/organization" element={<OrganizationPage />} />
         <Route path="/analytics" element={<AnalyticsDashboard />} />
         <Route path="/analytics/activity" element={<AnalyticsActivityPage />} />
+        <Route path="/analytics/project/:projectId" element={<AnalyticsProjectPage />} />
         <Route path="/project/:projectId" element={<ProjectPage />} />
         <Route path="/superadmin" element={<SuperAdmin />} />
         <Route path="/subscription" element={<SubscriptionPage />} />

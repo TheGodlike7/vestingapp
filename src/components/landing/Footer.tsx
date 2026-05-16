@@ -56,7 +56,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-[hsl(265_40%_18%/0.4)] pt-8 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-muted-foreground text-xs font-body">
-            © 2025 VestingApp. All rights reserved. Built on{" "}
+            © 2025 Harvest. All rights reserved. Built on{" "}
             <span className="text-[hsl(var(--accent))]">Solana</span>.
           </p>
           <div className="flex items-center gap-1.5 text-muted-foreground text-xs">

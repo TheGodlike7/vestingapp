@@ -2,14 +2,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import { toast } from "@/components/ui/sonner-toast";
 import { ArrowLeft, ArrowRight, BarChart3, Calendar, FolderOpen, Lock, Users, Zap } from "lucide-react";
-import { LineChart, BarChart, Bar, Line, XAxis, YAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart.tsx";
-
-import { Tooltip, ResponsiveContainer } from "recharts";
 import { ThemeToggle } from "./ThemeToggle";
 import {
   backendActivityFilters,
@@ -33,22 +25,24 @@ type Recommendation = {
   score: number;
 };
 
-type ClaimWithProject = {
-  amount: number | string;
-  vesting_schedules: {
-    vesting_projects: {
-      project_name: string;
-    }[];
-  }[];
+type AnalyticsProject = {
+  id: string;
+  project_name: string | null;
+  token_symbol: string | null;
+  token_mint: string | null;
+  organization_id: string | null;
+  logo_url: string | null;
+};
+
+type ProjectRecord = Omit<AnalyticsProject, "logo_url">;
+
+type OrganizationLogoRecord = {
+  id: string;
+  logo_url: string | null;
 };
 
 export default function AnalyticsDashboard() {
-  const [chartData, setChartData] = useState<{ date: string; total: number }[]>(
-    [],
-  );
-  const [projectChartData, setProjectChartData] = useState<
-    { project: string; total: number }[]
-  >([]);
+  const [projects, setProjects] = useState<AnalyticsProject[]>([]);
   const [leaderboard, setLeaderboard] = useState<
     { wallet: string; total: number }[]
   >([]);
@@ -95,26 +89,6 @@ export default function AnalyticsDashboard() {
       {} as Record<string, { user: string; total: number }>,
     ),
   ).sort((a, b) => b.total - a.total);
-
-  // Revenue Chart Data Logic
-  const revenueByDay = processedTxs.reduce(
-    (acc, tx) => {
-      if (tx.status !== "completed") return acc;
-
-      const date = new Date(tx.created_at).toLocaleDateString();
-
-      if (!acc[date]) acc[date] = 0;
-      acc[date] += 99;
-
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  const revenueData = Object.entries(revenueByDay).map(([date, value]) => ({
-    date,
-    revenue: value,
-  }));
 
   // 🔥 FETCH PROCESSED TXS
   const fetchProcessedTxs = async () => {
@@ -187,61 +161,63 @@ export default function AnalyticsDashboard() {
     return recs.sort((a, b) => b.score - a.score).map((r) => r.message);
   };
 
-  const fetchProjectCount = async () => {
-    const { data } = await supabase.from("vesting_projects").select("id");
+  const getProjectMark = (project: AnalyticsProject): string => {
+    const symbol = project.token_symbol?.trim();
+    if (symbol) return symbol.slice(0, 3).toUpperCase();
 
-    if (data) setProjectCount(data.length);
+    const name = project.project_name?.trim();
+    if (name) {
+      return name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase();
+    }
+
+    return "VA";
   };
 
-  const fetchChartData = async () => {
+  const fetchProjects = async () => {
     const { data } = await supabase
-      .from("claim_history")
-      .select("amount, created_at");
+      .from("vesting_projects")
+      .select("id, project_name, token_symbol, token_mint, organization_id")
+      .order("project_name", { ascending: true });
 
-    if (!data) return;
-
-    const grouped: Record<string, number> = {};
-
-    data.forEach((item: { amount: number | string; created_at: string }) => {
-      const date = new Date(item.created_at).toISOString().slice(0, 10);
-      if (!grouped[date]) grouped[date] = 0;
-      grouped[date] += Number(item.amount);
-    });
-
-    setChartData(
-      Object.entries(grouped).map(([date, total]) => ({ date, total })),
+    const projectRecords = (data ?? []) as ProjectRecord[];
+    const organizationIds = Array.from(
+      new Set(
+        projectRecords
+          .map((project) => project.organization_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
     );
-  };
 
-  const fetchProjectChartData = async () => {
-    const { data } = await supabase.from("claim_history").select(`
-        amount,
-        vesting_schedules (
-          vesting_projects (
-            project_name
-          )
-        )
-      `);
+    let logoByOrganizationId: Record<string, string | null> = {};
 
-    if (!data) return;
+    if (organizationIds.length > 0) {
+      const { data: organizations } = await supabase
+        .from("organizations")
+        .select("id, logo_url")
+        .in("id", organizationIds);
 
-    const grouped: Record<string, number> = {};
+      logoByOrganizationId = Object.fromEntries(
+        ((organizations ?? []) as OrganizationLogoRecord[]).map((organization) => [
+          organization.id,
+          organization.logo_url,
+        ]),
+      );
+    }
 
-    data.forEach((item: ClaimWithProject) => {
-      const project =
-        item.vesting_schedules[0]?.vesting_projects[0]?.project_name ||
-        "Unknown";
+    const nextProjects = projectRecords.map((project) => ({
+      ...project,
+      logo_url: project.organization_id
+        ? logoByOrganizationId[project.organization_id] ?? null
+        : null,
+    }));
 
-      if (!grouped[project]) grouped[project] = 0;
-      grouped[project] += Number(item.amount);
-    });
-
-    setProjectChartData(
-      Object.entries(grouped).map(([project, total]) => ({
-        project,
-        total,
-      })),
-    );
+    setProjects(nextProjects);
+    setProjectCount(nextProjects.length);
   };
 
   const fetchLeaderboard = async () => {
@@ -311,10 +287,8 @@ export default function AnalyticsDashboard() {
   // 🔥 FETCH DATA
   useEffect(() => {
     const load = async () => {
-      await fetchChartData();
-      await fetchProjectChartData();
+      await fetchProjects();
       await fetchLeaderboard();
-      await fetchProjectCount();
       await fetchProcessedTxs();
 
       const { data } = await supabase.from("vesting_schedules").select("*");
@@ -352,7 +326,7 @@ export default function AnalyticsDashboard() {
     >
       <div className="absolute inset-0 mesh-bg opacity-20 pointer-events-none" />
       <div
-        className="absolute top-[-10%] left-1/2 h-96 w-[34rem] -translate-x-1/2 rounded-full blur-[100px] pointer-events-none"
+        className="absolute top-[-10%] left-1/2 h-96 w-136 -translate-x-1/2 rounded-full blur-[100px] pointer-events-none"
         style={{ background: "hsl(var(--primary) / 0.12)" }}
       />
 
@@ -460,70 +434,65 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* ✅ CHART NEW BLOCK */}
-        <div className="glass-card rounded-2xl p-4 mb-8">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-4">
-            Claims Overview
-          </h2>
-
-          <ChartContainer
-            config={{
-              total: { label: "Claims", color: "hsl(var(--primary))" },
-            }}
-          >
-            <LineChart data={chartData}>
-              <XAxis dataKey="date" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke="var(--color-total)"
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ChartContainer>
-        </div>
-
-        <div className="glass-card rounded-2xl p-6 mb-8">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-4">
-            Revenue Over Time
-          </h2>
-
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#14F195"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+        <div className="glass-card rounded-2xl p-5 mb-8 sm:p-6">
+          <div className="mb-5">
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              Project Analytics
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Select a project to open its expanded claim, recipient, and schedule
+              graphs on a dedicated analytics page.
+            </p>
           </div>
-        </div>
 
-        <div className="glass-card rounded-2xl p-6 mb-8">
-          <h2 className="font-display text-lg font-semibold text-foreground mb-4">
-            Claims Per Project
-          </h2>
-
-          <ChartContainer
-            config={{
-              total: { label: "Claimed", color: "hsl(var(--accent))" },
-            }}
-          >
-            <BarChart data={projectChartData}>
-              <XAxis dataKey="project" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="total" fill="var(--color-total)" />
-            </BarChart>
-          </ChartContainer>
+          {projects.length === 0 ? (
+            <div className="rounded-2xl border border-[hsl(265_40%_22%)] px-4 py-8 text-center text-sm text-muted-foreground">
+              No projects available yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {projects.map((project, index) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `/analytics/project/${project.id}`;
+                  }}
+                  className="group flex min-w-0 flex-col items-center gap-3 rounded-2xl border border-transparent p-3 text-center transition hover:border-[hsl(var(--primary)/0.38)] hover:bg-[hsl(265_40%_16%/0.58)]"
+                >
+                  <span
+                    className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-[hsl(var(--primary)/0.36)] bg-[hsl(265_40%_14%/0.92)] font-display text-lg font-black text-foreground shadow-[0_0_32px_hsl(var(--primary)/0.2)] transition group-hover:scale-105"
+                    style={{
+                      boxShadow:
+                        index % 2 === 0
+                          ? "0 0 34px hsl(var(--primary) / 0.26)"
+                          : "0 0 34px hsl(var(--accent) / 0.22)",
+                    }}
+                  >
+                    <span className="absolute inset-0 bg-linear-to-br from-[hsl(var(--primary)/0.28)] to-[hsl(var(--accent)/0.18)]" />
+                    <span className="relative">{getProjectMark(project)}</span>
+                    {project.logo_url ? (
+                      <img
+                        src={project.logo_url}
+                        alt={`${project.project_name || "Project"} logo`}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : null}
+                  </span>
+                  <span className="w-full truncate text-sm font-bold text-foreground">
+                    {project.project_name || "Untitled Project"}
+                  </span>
+                  <span className="max-w-28 truncate text-xs text-muted-foreground">
+                    {project.token_symbol || project.token_mint || "Project"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="glass-card rounded-2xl p-6 mb-8">

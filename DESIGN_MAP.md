@@ -24,12 +24,14 @@ flowchart TD
   Dashboard --> Project["/project/:projectId ProjectPage"]
   Dashboard --> Analytics["/analytics AnalyticsDashboard"]
   Analytics --> BackendActivity["/analytics/activity AnalyticsActivityPage"]
+  Analytics --> ProjectAnalytics["/analytics/project/:projectId AnalyticsProjectPage"]
   Dashboard --> SuperAdmin["/superadmin SuperAdmin"]
   Dashboard --> AdminPanel["/admin AdminPanel"]
   Dashboard --> Webhooks["/webhooks WebhookDashboard"]
   Dashboard --> Fraud["/fraud FraudDashboard"]
 
   Root --> Claim["/claim ClaimPage"]
+  Claim --> ClaimerAnalytics["/claim/analytics/project/:projectId ClaimerProjectAnalyticsPage"]
   Claim --> ClaimerOrgs["ClaimerDashboard"]
   ClaimerOrgs --> ClaimerProjects["ClaimerProjectsPage"]
   ClaimerProjects --> ClaimerVestings["ClaimerVestingsPage"]
@@ -192,9 +194,9 @@ sequenceDiagram
 | Organization KYC | `src/OrganizationPage.tsx`, `src/CreateOrganization.tsx` | Subscription-gated owner wallet, organization identity, and official links form |
 | Project detail | `src/ProjectPage.tsx` | Project schedules and management |
 | Subscription | `src/SubscriptionPage.tsx`, `src/components/subscription/*`, `src/payments/*` | Starter plan, checkout modal, wallet payment orchestration |
-| Claim portal | `src/App.tsx`, `src/components/onboarding/ClaimOnboardingGuide.tsx`, `src/ClaimerDashboard.tsx`, `src/ClaimerProjectsPage.tsx`, `src/ClaimerVestingsPage.tsx` | Recipient token claim flow with replayable local guide |
+| Claim portal | `src/App.tsx`, `src/ClaimerProjectAnalyticsPage.tsx`, `src/components/onboarding/ClaimOnboardingGuide.tsx`, `src/ClaimerDashboard.tsx`, `src/ClaimerProjectsPage.tsx`, `src/ClaimerVestingsPage.tsx` | Recipient token claim flow, organization/project analytics selector, and replayable local guide |
 | Admin tools | `src/AdminPanel.tsx`, `src/SuperAdmin.tsx` | Elevated admin functions |
-| Monitoring | `src/AnalyticsDashboard.tsx`, `src/AnalyticsActivityPage.tsx`, `src/WebhookDashboard.tsx`, `src/FraudDashboard.tsx` | Analytics, full backend activity explorer-lite view, webhooks, risk signals |
+| Monitoring | `src/AnalyticsDashboard.tsx`, `src/AnalyticsActivityPage.tsx`, `src/AnalyticsProjectPage.tsx`, `src/WebhookDashboard.tsx`, `src/FraudDashboard.tsx` | Analytics, per-project analytics pages, full backend activity explorer-lite view, webhooks, risk signals |
 
 ## Core Data Model
 
@@ -211,6 +213,7 @@ erDiagram
   pending_payments ||--o| processed_transactions : completes_with
   processed_transactions ||--o| subscriptions : activates
   wallet_risk ||--o{ fraud_logs : flags
+  organizations ||--o{ organization_reviews : reviewed_by_superadmin
 
   project_owners {
     uuid id
@@ -229,12 +232,31 @@ erDiagram
     text name
     text organization_type
     text owner_full_name
+    text logo_url
+    text kyb_status
+    text kyb_risk_level
+    integer kyb_risk_score
+    text country_of_operation
+    text contact_email
+    text representative_role
+    text project_description
     text x_url
     text discord_url
     text telegram_url
     text linkedin_url
     text website_url
     boolean kyc_profile_submitted
+  }
+
+  organization_reviews {
+    uuid id
+    uuid organization_id
+    uuid reviewed_by
+    text old_status
+    text new_status
+    integer risk_score
+    text risk_level
+    text notes
   }
 
   pending_payments {
@@ -282,10 +304,22 @@ erDiagram
     uuid project_id
     text recipient_wallet
     numeric total_amount
+    numeric claimed_amount
+    numeric claimable_amount
     timestamptz start_date
     integer cliff_months
     integer duration_months
     text schedule_type
+  }
+
+  claim_history {
+    uuid id
+    uuid schedule_id
+    numeric amount
+    timestamptz claimed_at
+    timestamptz claim_executed_at
+    numeric token_price_usd_at_claim
+    numeric claim_value_usd
   }
 ```
 
@@ -322,7 +356,8 @@ flowchart TD
 ## Design Notes
 
 - Keep issuer/admin screens dense, scannable, and operational.
-- Keep organization creation subscription-gated and KYC-focused: DAO profiles require X, Discord, and Telegram; company profiles require LinkedIn, website, and Meta/Facebook or Instagram. Superadmins may preview the form read-only on `/organization` without wallet, subscription, edits, or submission.
+- Keep organization creation subscription-gated and trust-profile focused: DAO profiles require X, Discord, and Telegram; company profiles require LinkedIn, website, and Meta/Facebook or Instagram. Superadmins may preview the form read-only on `/organization` without wallet, subscription, edits, or submission. Organization `logo_url` is optional and feeds project analytics circular logos for linked projects. Every organization URL box is backed by database validation through `private.is_valid_public_url` and the `organizations_validate_url_fields` trigger, so plain text or malformed URLs cannot be saved if the frontend is bypassed.
+- Keep KYB as a lightweight trust profile during paid beta: deterministic risk scoring plus superadmin review controls only public trust badges, not project creation.
 - Keep subscription UI plan-centered, not deposit-centered.
 - Keep the claim flow wallet-first and minimal.
 - Treat card payments as a separate processor-backed subscription checkout, not a fake local action.
@@ -330,6 +365,8 @@ flowchart TD
 - Keep the memo format stable: `vestingapp-starter-${userIdPrefix}`.
 - Keep the dashboard onboarding replayable, dismissible, and anchored to real controls, including the visible analytics shortcut, instead of explanatory pages.
 - Keep live backend activity readable: `/analytics` shows a short recent preview, while `/analytics/activity` loads processed transactions with status filters, search, 20-row pagination, and 15-character signature previews.
+- Keep project analytics separated by project: `/analytics` exposes circular project identity buttons using organization logo images when available, and `/analytics/project/:projectId` owns expanded claim, recipient, and schedule graphs. Admin progress uses a pie chart for claimed, claimable, and locked/unvested allocation state.
+- Keep claimer analytics personal and wallet-scoped: `/claim` lets claimers choose organizations, then active projects they participate in; `/claim/analytics/project/:projectId` shows personal claiming progress, claim execution history, and stored claim-time USD value snapshots.
 - Keep the claim portal reachable from the landing page and teach it separately from issuer onboarding.
 
 ## Mainnet Readiness

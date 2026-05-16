@@ -3,8 +3,11 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
 import {
   BadgeCheck,
+  CheckCircle2,
+  Flag,
   Globe2,
   Home,
+  Image as ImageIcon,
   Loader2,
   ShieldCheck,
   Users,
@@ -14,6 +17,15 @@ import { supabase } from "@/supabase";
 import { isAllowedSubscriptionWallet } from "@/payments/subscriptionPaymentConfig";
 
 export type OrganizationType = "dao" | "company";
+export type KybStatus =
+  | "unverified"
+  | "submitted"
+  | "in_review"
+  | "verified"
+  | "needs_changes"
+  | "rejected"
+  | "suspended";
+export type KybRiskLevel = "unknown" | "low" | "medium" | "high";
 
 export type OrganizationKycRecord = {
   id: string;
@@ -21,6 +33,11 @@ export type OrganizationKycRecord = {
   owner_id: string;
   organization_type: OrganizationType | null;
   owner_full_name: string | null;
+  logo_url: string | null;
+  country_of_operation: string | null;
+  contact_email: string | null;
+  representative_role: string | null;
+  project_description: string | null;
   x_url: string | null;
   discord_url: string | null;
   telegram_url: string | null;
@@ -28,8 +45,18 @@ export type OrganizationKycRecord = {
   instagram_url: string | null;
   linkedin_url: string | null;
   website_url: string | null;
+  source_of_funds_attestation: boolean | null;
+  sanctions_attestation: boolean | null;
+  non_custodial_attestation: boolean | null;
+  terms_attestation: boolean | null;
   kyc_profile_submitted: boolean | null;
   kyc_submitted_at: string | null;
+  kyb_status: KybStatus | null;
+  kyb_risk_level: KybRiskLevel | null;
+  kyb_risk_score: number | null;
+  kyb_reviewed_at: string | null;
+  kyb_reviewed_by: string | null;
+  kyb_review_notes: string | null;
 };
 
 type OrganizationLinkKey =
@@ -42,6 +69,14 @@ type OrganizationLinkKey =
   | "website_url";
 
 type OrganizationLinks = Record<OrganizationLinkKey, string>;
+
+type AttestationKey =
+  | "source_of_funds_attestation"
+  | "sanctions_attestation"
+  | "non_custodial_attestation"
+  | "terms_attestation";
+
+type Attestations = Record<AttestationKey, boolean>;
 
 type LinkField = {
   key: OrganizationLinkKey;
@@ -95,6 +130,29 @@ const linkFields: LinkField[] = [
   },
 ];
 
+const attestationFields: Array<{ key: AttestationKey; title: string; body: string }> = [
+  {
+    key: "source_of_funds_attestation",
+    title: "Legitimate source of funds",
+    body: "Subscription and token operations are funded from lawful project, DAO, treasury, or company sources.",
+  },
+  {
+    key: "sanctions_attestation",
+    title: "No sanctioned parties",
+    body: "The organization and representative are not sanctioned and will not use Harvest for sanctioned entities.",
+  },
+  {
+    key: "non_custodial_attestation",
+    title: "Non-custodial understanding",
+    body: "The project understands Harvest is a vesting and analytics platform, not a token custody provider.",
+  },
+  {
+    key: "terms_attestation",
+    title: "Truthful profile",
+    body: "The submitted links, identity details, and project description are accurate and can be reviewed by Harvest.",
+  },
+];
+
 function WalletBrandIcon({ icon, label }: { icon: string; label: string }) {
   if (icon) {
     return (
@@ -114,15 +172,32 @@ function WalletBrandIcon({ icon, label }: { icon: string; label: string }) {
   );
 }
 
+const PUBLIC_HTTP_URL_PATTERN =
+  /^https?:\/\/([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?::[0-9]{1,5})?(?:[/?#]\S*)?$/i;
+const BLOCKED_PUBLIC_URL_CHARS = /[\s<>"'{}|\\^`[\]]/;
+
 function isValidOfficialUrl(value: string) {
-  if (!value) return true;
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return true;
+
+  if (
+    trimmedValue.length > 2048 ||
+    BLOCKED_PUBLIC_URL_CHARS.test(trimmedValue) ||
+    !PUBLIC_HTTP_URL_PATTERN.test(trimmedValue)
+  ) {
+    return false;
+  }
 
   try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:";
+    const url = new URL(trimmedValue);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.includes(".");
   } catch {
     return false;
   }
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 function requiredForType(field: OrganizationLinkKey, organizationType: OrganizationType) {
@@ -153,6 +228,11 @@ export default function CreateOrganization({
   const { publicKey, wallets, wallet, select, connect, connected, connecting } = useWallet();
   const [name, setName] = useState(existingOrganization?.name ?? "");
   const [ownerFullName, setOwnerFullName] = useState(existingOrganization?.owner_full_name ?? "");
+  const [logoUrl, setLogoUrl] = useState(existingOrganization?.logo_url ?? "");
+  const [countryOfOperation, setCountryOfOperation] = useState(existingOrganization?.country_of_operation ?? "");
+  const [contactEmail, setContactEmail] = useState(existingOrganization?.contact_email ?? "");
+  const [representativeRole, setRepresentativeRole] = useState(existingOrganization?.representative_role ?? "");
+  const [projectDescription, setProjectDescription] = useState(existingOrganization?.project_description ?? "");
   const [organizationType, setOrganizationType] = useState<OrganizationType>(
     existingOrganization?.organization_type ?? "dao",
   );
@@ -164,6 +244,12 @@ export default function CreateOrganization({
     instagram_url: getLinkValue(existingOrganization, "instagram_url"),
     linkedin_url: getLinkValue(existingOrganization, "linkedin_url"),
     website_url: getLinkValue(existingOrganization, "website_url"),
+  });
+  const [attestations, setAttestations] = useState<Attestations>({
+    source_of_funds_attestation: Boolean(existingOrganization?.source_of_funds_attestation),
+    sanctions_attestation: Boolean(existingOrganization?.sanctions_attestation),
+    non_custodial_attestation: Boolean(existingOrganization?.non_custodial_attestation),
+    terms_attestation: Boolean(existingOrganization?.terms_attestation),
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -216,6 +302,13 @@ export default function CreateOrganization({
     }));
   };
 
+  const updateAttestation = (key: AttestationKey, value: boolean) => {
+    setAttestations((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
   const validateForm = () => {
     if (!publicKey) {
       return "Connect a supported Solana wallet first.";
@@ -226,7 +319,23 @@ export default function CreateOrganization({
     }
 
     if (!ownerFullName.trim()) {
-      return "Organization owner name is required for KYC.";
+      return "Organization owner name is required for the trust profile.";
+    }
+
+    if (!countryOfOperation.trim()) {
+      return "Country of operation is required.";
+    }
+
+    if (!isValidEmail(contactEmail)) {
+      return "A valid contact email is required.";
+    }
+
+    if (!representativeRole.trim()) {
+      return "Representative role is required.";
+    }
+
+    if (!projectDescription.trim()) {
+      return "Project description is required.";
     }
 
     const trimmedLinks = Object.fromEntries(
@@ -239,17 +348,26 @@ export default function CreateOrganization({
       );
 
       if (missingDaoLinks.length > 0) {
-        return "DAO KYC requires X, Discord server, and Telegram group links.";
+        return "DAO trust profiles require X, Discord server, and Telegram group links.";
       }
     } else if (!trimmedLinks.linkedin_url || !trimmedLinks.website_url) {
-      return "Company KYC requires LinkedIn and the organization main website.";
+      return "Company trust profiles require LinkedIn and the organization main website.";
     } else if (!trimmedLinks.meta_url && !trimmedLinks.instagram_url) {
-      return "Company KYC requires either a Meta/Facebook page or Instagram link.";
+      return "Company trust profiles require either a Meta/Facebook page or Instagram link.";
+    }
+
+    if (!isValidOfficialUrl(logoUrl.trim())) {
+      return "Logo URL must be a valid http or https image link.";
     }
 
     const invalidField = linkFields.find((field) => !isValidOfficialUrl(trimmedLinks[field.key]));
     if (invalidField) {
       return `${invalidField.label} must be a valid http or https link.`;
+    }
+
+    const missingAttestation = attestationFields.find((field) => !attestations[field.key]);
+    if (missingAttestation) {
+      return `Confirm this trust attestation: ${missingAttestation.title}.`;
     }
 
     return "";
@@ -276,6 +394,11 @@ export default function CreateOrganization({
       name: name.trim(),
       organization_type: organizationType,
       owner_full_name: ownerFullName.trim(),
+      logo_url: logoUrl.trim() || null,
+      country_of_operation: countryOfOperation.trim(),
+      contact_email: contactEmail.trim().toLowerCase(),
+      representative_role: representativeRole.trim(),
+      project_description: projectDescription.trim(),
       x_url: trimmedLinks.x_url,
       discord_url: trimmedLinks.discord_url,
       telegram_url: trimmedLinks.telegram_url,
@@ -283,8 +406,12 @@ export default function CreateOrganization({
       instagram_url: trimmedLinks.instagram_url,
       linkedin_url: trimmedLinks.linkedin_url,
       website_url: trimmedLinks.website_url,
+      source_of_funds_attestation: attestations.source_of_funds_attestation,
+      sanctions_attestation: attestations.sanctions_attestation,
+      non_custodial_attestation: attestations.non_custodial_attestation,
+      terms_attestation: attestations.terms_attestation,
       kyc_profile_submitted: true,
-      kyc_submitted_at: new Date().toISOString(),
+      kyc_submitted_at: existingOrganization?.kyc_submitted_at ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
@@ -316,15 +443,15 @@ export default function CreateOrganization({
           <div>
             <h2 className="font-display text-lg font-bold text-foreground">
               {readOnlyPreview
-                ? "Organization KYC form preview"
+                ? "Organization trust profile preview"
                 : editingExisting
-                  ? "Complete organization KYC"
-                  : "Create your organization"}
+                  ? "Update organization trust profile"
+                  : "Create organization trust profile"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {readOnlyPreview
-                ? "Preview the owner wallet, organization identity, and official links form without saving anything."
-                : "Connect the owner wallet, name the organization, and submit the official KYC profile."}
+                ? "Preview the owner wallet, identity, official links, and attestations without saving."
+                : "Connect the owner wallet, identify the organization, and submit a lightweight trust profile."}
             </p>
           </div>
         </div>
@@ -375,7 +502,7 @@ export default function CreateOrganization({
         <div className="mt-5 rounded-xl border border-[hsl(157_87%_51%/0.24)] bg-[hsl(157_87%_51%/0.08)] px-4 py-3 text-sm text-[hsl(var(--accent))]">
           <div className="flex items-center gap-2 font-semibold">
             <BadgeCheck className="h-4 w-4" />
-            Owner wallet connected: {compactWallet(activeWallet)}
+            Step 1 complete: owner wallet connected: {compactWallet(activeWallet)}
           </div>
         </div>
       )}
@@ -389,31 +516,101 @@ export default function CreateOrganization({
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Organization name
-                </span>
-                <input
-                  placeholder="VestingApp DAO"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  disabled={readOnlyPreview}
-                  className="min-h-11 w-full rounded-xl border border-[hsl(265_40%_22%)] bg-[hsl(265_44%_15%/0.55)] px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[hsl(var(--primary))] disabled:cursor-not-allowed disabled:opacity-70"
-                />
-              </label>
+              {[
+                {
+                  label: "Organization name",
+                  value: name,
+                  onChange: setName,
+                  placeholder: "Harvest DAO",
+                },
+                {
+                  label: "Owner or representative",
+                  value: ownerFullName,
+                  onChange: setOwnerFullName,
+                  placeholder: "Founder, legal owner, or authorized signer",
+                },
+                {
+                  label: "Country of operation",
+                  value: countryOfOperation,
+                  onChange: setCountryOfOperation,
+                  placeholder: "Lebanon, UAE, United States...",
+                },
+                {
+                  label: "Contact email",
+                  value: contactEmail,
+                  onChange: setContactEmail,
+                  placeholder: "trust@your-org.com",
+                  type: "email",
+                },
+                {
+                  label: "Representative role",
+                  value: representativeRole,
+                  onChange: setRepresentativeRole,
+                  placeholder: "Founder, treasury lead, operations manager...",
+                },
+              ].map((field) => (
+                <label key={field.label} className="space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {field.label}
+                  </span>
+                  <input
+                    type={field.type ?? "text"}
+                    placeholder={field.placeholder}
+                    value={field.value}
+                    onChange={(event) => field.onChange(event.target.value)}
+                    disabled={readOnlyPreview}
+                    className="min-h-11 w-full rounded-xl border border-[hsl(265_40%_22%)] bg-[hsl(265_44%_15%/0.55)] px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[hsl(var(--primary))] disabled:cursor-not-allowed disabled:opacity-70"
+                  />
+                </label>
+              ))}
 
+              <label className="space-y-2 md:col-span-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Project description
+                </span>
+                <textarea
+                  placeholder="Briefly describe the token project, DAO, launchpad, company, or treasury this organization represents."
+                  value={projectDescription}
+                  onChange={(event) => setProjectDescription(event.target.value)}
+                  disabled={readOnlyPreview}
+                  className="min-h-24 w-full rounded-xl border border-[hsl(265_40%_22%)] bg-[hsl(265_44%_15%/0.55)] px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[hsl(var(--primary))] disabled:cursor-not-allowed disabled:opacity-70"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Owner of organization
+                  Logo URL
                 </span>
                 <input
-                  placeholder="Legal owner, founder, or authorized representative"
-                  value={ownerFullName}
-                  onChange={(event) => setOwnerFullName(event.target.value)}
+                  type="url"
+                  placeholder="https://your-org.com/logo.png"
+                  value={logoUrl}
+                  onChange={(event) => setLogoUrl(event.target.value)}
                   disabled={readOnlyPreview}
                   className="min-h-11 w-full rounded-xl border border-[hsl(265_40%_22%)] bg-[hsl(265_44%_15%/0.55)] px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[hsl(var(--primary))] disabled:cursor-not-allowed disabled:opacity-70"
                 />
+                <span className="block text-[11px] leading-4 text-muted-foreground">
+                  Optional. Used as the circular analytics image for projects linked to this organization.
+                </span>
               </label>
+              <div className="flex items-end justify-center md:justify-end">
+                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[hsl(var(--primary)/0.32)] bg-[hsl(265_44%_15%/0.65)]">
+                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  {isValidOfficialUrl(logoUrl.trim()) && logoUrl.trim() ? (
+                    <img
+                      src={logoUrl.trim()}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : null}
+                </div>
+              </div>
             </div>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -488,6 +685,36 @@ export default function CreateOrganization({
             </div>
           </div>
 
+          <div className="rounded-xl border border-[hsl(265_40%_20%)] bg-[hsl(265_30%_12%/0.82)] p-4">
+            <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Flag className="h-4 w-4 text-[hsl(var(--accent))]" />
+              Step 4: Trust attestations
+            </div>
+            <div className="grid gap-3">
+              {attestationFields.map((field) => (
+                <label
+                  key={field.key}
+                  className="flex gap-3 rounded-xl border border-[hsl(265_40%_22%)] bg-[hsl(265_44%_15%/0.42)] p-3"
+                >
+                  <input
+                    type="checkbox"
+                    checked={attestations[field.key]}
+                    onChange={(event) => updateAttestation(field.key, event.target.checked)}
+                    disabled={readOnlyPreview}
+                    className="mt-1 h-4 w-4 shrink-0"
+                  />
+                  <span>
+                    <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-[hsl(var(--accent))]" />
+                      {field.title}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">{field.body}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={createOrg}
@@ -496,7 +723,7 @@ export default function CreateOrganization({
             style={{ background: "var(--gradient-primary)", boxShadow: loading || readOnlyPreview ? "none" : "var(--glow-purple)" }}
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {readOnlyPreview ? "Read-only preview" : editingExisting ? "Save KYC profile" : "Create organization"}
+            {readOnlyPreview ? "Read-only preview" : editingExisting ? "Resubmit trust profile" : "Submit trust profile"}
           </button>
         </div>
       )}

@@ -16,7 +16,7 @@ export default function CtaSection() {
             Ready to vest on Solana?
           </h2>
           <p className="text-muted-foreground text-lg font-body leading-relaxed mb-12">
-            Join protocols already using VestingApp to manage their locked tokens.
+            Join protocols already using Harvest to manage their locked tokens.
             Deploy your first schedule in minutes, no code required.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">

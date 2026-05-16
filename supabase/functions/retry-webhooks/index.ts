@@ -12,9 +12,19 @@ type ProcessedTransaction = {
   raw_payload: unknown;
 };
 
+type DenoRuntime = {
+  env: {
+    get(name: string): string | undefined;
+  };
+  serve(handler: (request: Request) => Response | Promise<Response>): void;
+};
+
+const denoRuntime = (globalThis as typeof globalThis & { Deno: DenoRuntime })
+  .Deno;
+
 async function sendTelegram(message: string): Promise<void> {
-  const BOT = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const CHAT = Deno.env.get("TELEGRAM_CHAT_ID");
+  const BOT = denoRuntime.env.get("TELEGRAM_BOT_TOKEN");
+  const CHAT = denoRuntime.env.get("TELEGRAM_CHAT_ID");
 
   if (!BOT || !CHAT) return;
 
@@ -28,11 +38,20 @@ async function sendTelegram(message: string): Promise<void> {
   });
 }
 
-Deno.serve(async () => {
+denoRuntime.serve(async (req: Request) => {
   try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const HELIUS_SECRET = Deno.env.get("HELIUS_WEBHOOK_SECRET")!;
+    const expectedRetrySecret = denoRuntime.env.get("RETRY_WEBHOOKS_SECRET");
+    const authHeader = req.headers.get("authorization");
+    const bearerToken = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1];
+
+    if (!expectedRetrySecret || bearerToken !== expectedRetrySecret) {
+      console.warn("Unauthorized retry-webhooks attempt");
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    const SUPABASE_URL = denoRuntime.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_KEY = denoRuntime.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const HELIUS_SECRET = denoRuntime.env.get("HELIUS_WEBHOOK_SECRET")!;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: { persistSession: false },
@@ -60,7 +79,9 @@ Deno.serve(async () => {
           continue;
         }
 
-        await sendTelegram(`Retry triggered\nTx: ${tx.signature} (Attempt ${tx.retry_count || 0})`);
+        await sendTelegram(
+          `Retry triggered\nTx: ${tx.signature} (Attempt ${tx.retry_count || 0})`,
+        );
 
         const res = await fetch(`${SUPABASE_URL}/functions/v1/helius-webhook`, {
           method: "POST",
@@ -87,12 +108,15 @@ Deno.serve(async () => {
         }
 
         if (refreshedTx?.status !== "completed") {
-          throw new Error(refreshedTx?.error ?? "Retry did not complete transaction");
+          throw new Error(
+            refreshedTx?.error ?? "Retry did not complete transaction",
+          );
         }
 
         await sendTelegram(`Retry success\nTx: ${tx.signature}`);
       } catch (innerErr) {
-        const message = innerErr instanceof Error ? innerErr.message : String(innerErr);
+        const message =
+          innerErr instanceof Error ? innerErr.message : String(innerErr);
         console.error(`Retry failed for ${tx.signature}:`, message);
 
         if ((tx.retry_count || 0) < 3) {

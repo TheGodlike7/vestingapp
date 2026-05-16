@@ -2,6 +2,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
+  BadgeCheck,
   BarChart3,
   Building2,
   ArrowRight,
@@ -35,6 +36,8 @@ type Organization = {
   id: string;
   name: string;
   owner_id: string;
+  kyb_status: string | null;
+  kyb_risk_level: string | null;
 };
 
 function AdminDashboardContent() {
@@ -72,7 +75,7 @@ function AdminDashboardContent() {
   const fetchOrganizationForWallet = useCallback(async (walletAddress: string) => {
     const { data, error } = await supabase
       .from("organizations")
-      .select("id, name, owner_id")
+      .select("id, name, owner_id, kyb_status, kyb_risk_level")
       .eq("owner_id", walletAddress)
       .limit(1)
       .maybeSingle<Organization>();
@@ -336,12 +339,26 @@ function AdminDashboardContent() {
                   <p className="text-xs font-semibold text-muted-foreground">
                     Organization
                   </p>
-                  <h2 className="font-display text-lg font-bold text-foreground">
-                    {activeOrganization ? activeOrganization.name : "Create your organization"}
-                  </h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-display text-lg font-bold text-foreground">
+                      {activeOrganization ? activeOrganization.name : "Create your organization"}
+                    </h2>
+                    {activeOrganization?.kyb_status === "verified" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[hsl(157_87%_51%/0.28)] bg-[hsl(157_87%_51%/0.08)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--accent))]">
+                        <BadgeCheck className="h-3 w-3" />
+                        Verified
+                      </span>
+                    ) : activeOrganization ? (
+                      <span className="rounded-full border border-[hsl(265_40%_24%)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                        {(activeOrganization.kyb_status ?? "unverified").replace("_", " ")}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {activeOrganization
-                      ? "Your home base is ready for projects, schedules, and recipients."
+                      ? activeOrganization.kyb_status === "verified"
+                        ? "Your home base is verified for paid beta trust signals."
+                        : "Your home base is ready. Submit or review the trust profile to unlock verified signals."
                       : "Open the organization setup page to create your workspace home base."}
                   </p>
                 </div>

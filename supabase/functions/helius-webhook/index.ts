@@ -26,10 +26,12 @@ type RpcInstruction = {
   data?: string;
 };
 
-type RpcAccountKey = string | {
-  pubkey?: string;
-  signer?: boolean;
-};
+type RpcAccountKey =
+  | string
+  | {
+      pubkey?: string;
+      signer?: boolean;
+    };
 
 type PendingPayment = {
   id: string;
@@ -102,8 +104,16 @@ type PublicSchema = {
       Partial<ProcessedTransactionRow> & { signature: string },
       Partial<ProcessedTransactionRow>
     >;
-    pending_payments: TableDefinition<PendingPaymentRow, Partial<PendingPaymentRow>, Partial<PendingPaymentRow>>;
-    project_owners: TableDefinition<ProjectOwnerRow, Partial<ProjectOwnerRow>, Partial<ProjectOwnerRow>>;
+    pending_payments: TableDefinition<
+      PendingPaymentRow,
+      Partial<PendingPaymentRow>,
+      Partial<PendingPaymentRow>
+    >;
+    project_owners: TableDefinition<
+      ProjectOwnerRow,
+      Partial<ProjectOwnerRow>,
+      Partial<ProjectOwnerRow>
+    >;
   };
   Views: Record<string, never>;
   Functions: {
@@ -127,7 +137,7 @@ type Database = {
   public: PublicSchema;
 };
 
-type ServiceClient = ReturnType<typeof createClient<Database, "public", PublicSchema>>;
+type ServiceClient = ReturnType<typeof createClient<Database, "public">>;
 
 const MEMO_PREFIX = "vestingapp-starter-";
 const USDC_DECIMALS = 6;
@@ -135,14 +145,26 @@ const MAX_MONTHS_PER_TRANSACTION = 12;
 
 type SubscriptionNetwork = "mainnet-beta" | "devnet";
 
+type DenoRuntime = {
+  env: {
+    get(name: string): string | undefined;
+  };
+  serve(handler: (request: Request) => Response | Promise<Response>): void;
+};
+
+const denoRuntime = (globalThis as typeof globalThis & { Deno: DenoRuntime })
+  .Deno;
+
 function readRequiredEnv(name: string): string {
-  const value = Deno.env.get(name);
+  const value = denoRuntime.env.get(name);
   if (!value) throw new Error(`${name} is not configured`);
   return value;
 }
 
 function readSolanaNetwork(): SubscriptionNetwork {
-  return Deno.env.get("SOLANA_NETWORK")?.toLowerCase() === "devnet" ? "devnet" : "mainnet-beta";
+  return denoRuntime.env.get("SOLANA_NETWORK")?.toLowerCase() === "devnet"
+    ? "devnet"
+    : "mainnet-beta";
 }
 
 function subscriptionAmountForNetwork(network: SubscriptionNetwork): number {
@@ -157,7 +179,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function amountToAtomic(value: number | string, decimals: number): bigint {
-  const normalized = typeof value === "number" ? value.toFixed(decimals) : value.trim();
+  const normalized =
+    typeof value === "number" ? value.toFixed(decimals) : value.trim();
 
   if (!/^\d+(\.\d+)?$/.test(normalized)) {
     throw new Error(`Invalid token amount: ${normalized}`);
@@ -166,12 +189,16 @@ function amountToAtomic(value: number | string, decimals: number): bigint {
   const [wholePart, fractionPart = ""] = normalized.split(".");
   const excessFraction = fractionPart.slice(decimals);
   if (/[1-9]/.test(excessFraction)) {
-    throw new Error(`Token amount has more than ${decimals} decimals: ${normalized}`);
+    throw new Error(
+      `Token amount has more than ${decimals} decimals: ${normalized}`,
+    );
   }
 
   const factor = 10n ** BigInt(decimals);
   const wholeAtomic = BigInt(wholePart) * factor;
-  const fractionalAtomic = BigInt((fractionPart.slice(0, decimals).padEnd(decimals, "0")) || "0");
+  const fractionalAtomic = BigInt(
+    fractionPart.slice(0, decimals).padEnd(decimals, "0") || "0",
+  );
   return wholeAtomic + fractionalAtomic;
 }
 
@@ -179,18 +206,27 @@ function atomicToDecimalString(value: bigint, decimals: number): string {
   const factor = 10n ** BigInt(decimals);
   const whole = value / factor;
   const fraction = value % factor;
-  const fractionText = fraction.toString().padStart(decimals, "0").replace(/0+$/, "");
-  return fractionText ? `${whole.toString()}.${fractionText}` : whole.toString();
+  const fractionText = fraction
+    .toString()
+    .padStart(decimals, "0")
+    .replace(/0+$/, "");
+  return fractionText
+    ? `${whole.toString()}.${fractionText}`
+    : whole.toString();
 }
 
-function getAccountKeyText(accountKey: RpcAccountKey | undefined): string | null {
+function getAccountKeyText(
+  accountKey: RpcAccountKey | undefined,
+): string | null {
   if (!accountKey) return null;
   if (typeof accountKey === "string") return accountKey;
   return typeof accountKey.pubkey === "string" ? accountKey.pubkey : null;
 }
 
 function getSigner(accountKeys: RpcAccountKey[]): string | null {
-  const explicitSigner = accountKeys.find((accountKey) => typeof accountKey !== "string" && accountKey.signer);
+  const explicitSigner = accountKeys.find(
+    (accountKey) => typeof accountKey !== "string" && accountKey.signer,
+  );
   return getAccountKeyText(explicitSigner ?? accountKeys[0]);
 }
 
@@ -230,8 +266,8 @@ function findMemo(instructions: RpcInstruction[]): string | null {
 }
 
 async function sendTelegram(message: string): Promise<void> {
-  const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID");
+  const BOT_TOKEN = denoRuntime.env.get("TELEGRAM_BOT_TOKEN");
+  const CHAT_ID = denoRuntime.env.get("TELEGRAM_CHAT_ID");
 
   if (!BOT_TOKEN || !CHAT_ID) return;
 
@@ -250,7 +286,10 @@ async function sendTelegram(message: string): Promise<void> {
   }
 }
 
-async function verifyTransaction(rpcUrl: string, signature: string): Promise<unknown> {
+async function verifyTransaction(
+  rpcUrl: string,
+  signature: string,
+): Promise<unknown> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const res = await fetch(rpcUrl, {
       method: "POST",
@@ -310,7 +349,10 @@ async function acquireProcessingLock(
     .maybeSingle();
 
   if (retryError) {
-    console.warn(`Could not acquire retry lock for ${signature}:`, retryError.message);
+    console.warn(
+      `Could not acquire retry lock for ${signature}:`,
+      retryError.message,
+    );
   }
 
   return Boolean(retryLock);
@@ -331,13 +373,16 @@ async function failProcessedTransaction(
     .eq("signature", signature);
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
-  const expectedSecret = Deno.env.get("HELIUS_WEBHOOK_SECRET");
+denoRuntime.serve(async (req: Request): Promise<Response> => {
+  const expectedSecret = denoRuntime.env.get("HELIUS_WEBHOOK_SECRET");
   const apiKey = req.headers.get("x-api-key");
   const authHeader = req.headers.get("authorization");
   const bearerToken = authHeader?.match(/^Bearer\s+(.+)$/i)?.[1];
 
-  if (!expectedSecret || (apiKey !== expectedSecret && bearerToken !== expectedSecret)) {
+  if (
+    !expectedSecret ||
+    (apiKey !== expectedSecret && bearerToken !== expectedSecret)
+  ) {
     console.warn("Unauthorized webhook attempt");
     return new Response("Unauthorized", { status: 401 });
   }
@@ -383,7 +428,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       let lockAcquired = false;
 
       try {
-        const verifiedTx = await verifyTransaction(RPC_URL, signature) as {
+        const verifiedTx = (await verifyTransaction(RPC_URL, signature)) as {
           meta?: { err?: unknown };
           transaction?: {
             message?: {
@@ -400,13 +445,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         lockAcquired = await acquireProcessingLock(supabase, signature, tx);
         if (!lockAcquired) {
-          console.warn(`Duplicate or in-flight transaction blocked: ${signature}`);
+          console.warn(
+            `Duplicate or in-flight transaction blocked: ${signature}`,
+          );
           continue;
         }
 
         const accountKeys = verifiedTx.transaction?.message?.accountKeys ?? [];
         const signer = getSigner(accountKeys);
-        const instructions = verifiedTx.transaction?.message?.instructions ?? [];
+        const instructions =
+          verifiedTx.transaction?.message?.instructions ?? [];
         const decodedMemo = findMemo(instructions) ?? tx.memo ?? null;
 
         if (!decodedMemo?.startsWith(MEMO_PREFIX)) {
@@ -417,14 +465,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         const { data: pendingPaymentData, error: pendingError } = await supabase
           .from("pending_payments")
-          .select("id, user_id, user_id_prefix, status, amount_usdc, token_mint, business_wallet, expires_at")
+          .select(
+            "id, user_id, user_id_prefix, status, amount_usdc, token_mint, business_wallet, expires_at",
+          )
           .eq("user_id_prefix", userIdPrefix)
           .maybeSingle();
 
         if (pendingError) throw new Error(pendingError.message);
-        const pendingPayment = pendingPaymentData as unknown as PendingPayment | null;
+        const pendingPayment =
+          pendingPaymentData as unknown as PendingPayment | null;
         if (!pendingPayment) throw new Error("No pending payment matches memo");
-        if (pendingPayment.status !== "pending") throw new Error(`Payment intent is ${pendingPayment.status}`);
+        if (pendingPayment.status !== "pending")
+          throw new Error(`Payment intent is ${pendingPayment.status}`);
 
         if (new Date(pendingPayment.expires_at).getTime() <= Date.now()) {
           await supabase
@@ -435,15 +487,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
           throw new Error("Payment intent expired");
         }
 
-        if (pendingPayment.token_mint !== USDC_MINT || pendingPayment.business_wallet !== BUSINESS_WALLET) {
+        if (
+          pendingPayment.token_mint !== USDC_MINT ||
+          pendingPayment.business_wallet !== BUSINESS_WALLET
+        ) {
           throw new Error("Payment intent configuration mismatch");
         }
 
-        const validTransfers = (tx.tokenTransfers ?? []).filter((transfer) =>
-          transfer.mint === USDC_MINT &&
-          transfer.toUserAccount === BUSINESS_WALLET &&
-          transfer.tokenAmount !== undefined &&
-          amountToAtomic(transfer.tokenAmount, USDC_DECIMALS) > 0n
+        const validTransfers = (tx.tokenTransfers ?? []).filter(
+          (transfer) =>
+            transfer.mint === USDC_MINT &&
+            transfer.toUserAccount === BUSINESS_WALLET &&
+            transfer.tokenAmount !== undefined &&
+            amountToAtomic(transfer.tokenAmount, USDC_DECIMALS) > 0n,
         );
 
         if (validTransfers.length === 0) {
@@ -455,7 +511,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           throw new Error("Missing payer wallet");
         }
 
-        const allSameWallet = validTransfers.every((transfer) => transfer.fromUserAccount === payerWallet);
+        const allSameWallet = validTransfers.every(
+          (transfer) => transfer.fromUserAccount === payerWallet,
+        );
         if (!allSameWallet) {
           throw new Error("Transaction includes mixed payer wallets");
         }
@@ -465,7 +523,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
 
         const totalAtomic = validTransfers.reduce(
-          (sum, transfer) => sum + amountToAtomic(transfer.tokenAmount ?? 0, USDC_DECIMALS),
+          (sum, transfer) =>
+            sum + amountToAtomic(transfer.tokenAmount ?? 0, USDC_DECIMALS),
           0n,
         );
 
@@ -475,11 +534,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         const monthsPaidBigInt = totalAtomic / requiredAtomic;
         if (monthsPaidBigInt < 1n) {
-          throw new Error("Payment amount is below the required subscription amount");
+          throw new Error(
+            "Payment amount is below the required subscription amount",
+          );
         }
 
         if (monthsPaidBigInt > BigInt(MAX_MONTHS_PER_TRANSACTION)) {
-          throw new Error(`Payment exceeds ${MAX_MONTHS_PER_TRANSACTION} months`);
+          throw new Error(
+            `Payment exceeds ${MAX_MONTHS_PER_TRANSACTION} months`,
+          );
         }
 
         const monthsPaid = Number(monthsPaidBigInt);
@@ -498,23 +561,30 @@ Deno.serve(async (req: Request): Promise<Response> => {
           throw new Error("Payer wallet does not match owner wallet");
         }
 
-        const { error: completionError } = await supabase.rpc("complete_subscription_payment", {
-          p_payment_id: pendingPayment.id,
-          p_signature: signature,
-          p_owner_id: owner.id,
-          p_months_paid: monthsPaid,
-          p_amount_usdc: amountUsdc,
-          p_wallet: payerWallet,
-        });
+        const { error: completionError } = await supabase.rpc(
+          "complete_subscription_payment",
+          {
+            p_payment_id: pendingPayment.id,
+            p_signature: signature,
+            p_owner_id: owner.id,
+            p_months_paid: monthsPaid,
+            p_amount_usdc: amountUsdc,
+            p_wallet: payerWallet,
+          },
+        );
 
         if (completionError) {
           throw new Error(completionError.message);
         }
 
         if (monthsPaid >= 3) {
-          await sendTelegram(`Bulk subscription\nUser: ${owner.id}\nMonths: ${monthsPaid}\nTx: ${signature}`);
+          await sendTelegram(
+            `Bulk subscription\nUser: ${owner.id}\nMonths: ${monthsPaid}\nTx: ${signature}`,
+          );
         } else {
-          await sendTelegram(`Subscription activated\nUser: ${owner.id}\nMonths: ${monthsPaid}\nTx: ${signature}`);
+          await sendTelegram(
+            `Subscription activated\nUser: ${owner.id}\nMonths: ${monthsPaid}\nTx: ${signature}`,
+          );
         }
 
         console.log(`Subscription payment completed: ${signature}`);

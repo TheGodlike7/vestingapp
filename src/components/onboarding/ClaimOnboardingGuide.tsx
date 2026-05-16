@@ -293,7 +293,7 @@ export function ClaimOnboardingGuide({ walletAddress }: ClaimOnboardingGuideProp
       <button
         type="button"
         onClick={replay}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+1.25rem)] right-4 sm:right-5 z-[70] flex h-11 w-11 items-center justify-center rounded-full border border-[hsl(157_87%_51%/0.35)] bg-[hsl(265_35%_10%/0.92)] text-foreground shadow-2xl backdrop-blur-xl transition hover:border-[hsl(var(--primary))]"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+1.25rem)] right-4 sm:right-5 z-70 flex h-11 w-11 items-center justify-center rounded-full border border-[hsl(157_87%_51%/0.35)] bg-[hsl(265_35%_10%/0.92)] text-foreground shadow-2xl backdrop-blur-xl transition hover:border-[hsl(var(--primary))]"
         title="Replay claim guide"
         aria-label="Replay claim guide"
       >
@@ -303,7 +303,7 @@ export function ClaimOnboardingGuide({ walletAddress }: ClaimOnboardingGuideProp
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-[60]"
+            className="fixed inset-0 z-60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -369,7 +369,7 @@ export function ClaimOnboardingGuide({ walletAddress }: ClaimOnboardingGuideProp
                   </button>
                 </div>
 
-                <p className="relative mt-4 text-sm leading-6 text-muted-foreground break-words">
+                <p className="relative mt-4 text-sm leading-6 text-muted-foreground wrap-break-word">
                   {activeStep.body}
                 </p>
 

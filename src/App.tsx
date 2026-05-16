@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { WalletContextProvider } from "./WalletProvider.tsx";
 import { supabase } from "./supabase.ts";
-import { Zap, Wallet, Inbox, TrendingUp } from "lucide-react";
+import { ArrowLeft, BarChart3, Zap, Wallet, Inbox, TrendingUp } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle.tsx";
 import { ClaimOnboardingGuide } from "./components/onboarding/ClaimOnboardingGuide.tsx";
 import { Toaster } from "./components/ui/sonner.tsx";
 import { useSubscription } from "./hooks/usesubscription.ts";
+import { useClaimerWalletAuth } from "./hooks/useClaimerWalletAuth.ts";
 
 // 🔥 NEW IMPORT (will use later when you create it)
 import ClaimerDashboard from "./ClaimerDashboard";
@@ -16,10 +17,19 @@ import ClaimerVestingsPage from "./ClaimerVestingsPage.tsx";
 import { AdminDashboard } from "./AdminDashboard.tsx";
 import WebhookDashboard from "./WebhookDashboard.tsx";
 
+type VestingOrganization = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+};
+
 type VestingProject = {
+  id: string;
   project_name: string;
   token_symbol: string;
   token_mint: string;
+  organization_id: string | null;
+  organizations?: VestingOrganization | VestingOrganization[] | null;
 };
 
 type VestingSchedule = {
@@ -33,7 +43,7 @@ type VestingSchedule = {
   schedule_type: string | null;
   is_active: boolean | null;
   created_at: string | null;
-  vesting_projects?: VestingProject;
+  vesting_projects?: VestingProject | VestingProject[] | null;
   claimed_amount?: number;
 };
 
@@ -45,13 +55,44 @@ type ClaimHistory = {
 
 const CLAIMS_HAVE_SECURE_ONCHAIN_PATH = false;
 
+const getScheduleProject = (schedule: VestingSchedule): VestingProject | null => {
+  const project = schedule.vesting_projects;
+
+  if (Array.isArray(project)) {
+    return project[0] ?? null;
+  }
+
+  return project ?? null;
+};
+
+const getProjectOrganization = (
+  project: VestingProject | null,
+): VestingOrganization | null => {
+  const organization = project?.organizations;
+
+  if (Array.isArray(organization)) {
+    return organization[0] ?? null;
+  }
+
+  return organization ?? null;
+};
+
 export function ClaimPage() {
   const { publicKey } = useWallet();
+  const {
+    authError,
+    authLoading,
+    isSignedInForConnectedWallet,
+    signInWithConnectedWallet,
+    signingIn,
+    walletAddress,
+  } = useClaimerWalletAuth();
   const [schedules, setSchedules] = useState<VestingSchedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<ClaimHistory[]>([]);
   const claimingId: string | null = null;
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [selectedAnalyticsOrgId, setSelectedAnalyticsOrgId] = useState<string | null>(null);
   const claimsEnabled = CLAIMS_HAVE_SECURE_ONCHAIN_PATH && import.meta.env.VITE_CLAIMS_ENABLED === 'true';
 
   const fetchHistory = useCallback(async (scheduleId: string) => {
@@ -68,7 +109,7 @@ export function ClaimPage() {
     setLoading(true);
     const { data } = await supabase
       .from("vesting_schedules")
-      .select(`*, vesting_projects (project_name, token_symbol, token_mint)`)
+      .select(`*, vesting_projects (id, project_name, token_symbol, token_mint, organization_id, organizations (id, name, logo_url))`)
       .eq("recipient_wallet", wallet)
       .eq("is_active", true);
 
@@ -85,15 +126,69 @@ export function ClaimPage() {
   }, [fetchHistory]);
 
   useEffect(() => {
-    if (!publicKey) return;
-
-    const walletAddress = publicKey.toBase58();
     const timer = window.setTimeout(() => {
+      if (!walletAddress || !isSignedInForConnectedWallet) {
+        setSchedules([]);
+        setHistory([]);
+        setLoading(false);
+        return;
+      }
+
       void fetchSchedules(walletAddress);
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [fetchSchedules, publicKey]);
+  }, [fetchSchedules, isSignedInForConnectedWallet, walletAddress]);
+
+  const claimerOrganizations = useMemo(() => {
+    const organizationMap = new Map<string, VestingOrganization>();
+
+    schedules.forEach((schedule) => {
+      const organization = getProjectOrganization(getScheduleProject(schedule));
+      if (organization && !organizationMap.has(organization.id)) {
+        organizationMap.set(organization.id, organization);
+      }
+    });
+
+    return Array.from(organizationMap.values());
+  }, [schedules]);
+
+  const selectedAnalyticsOrganization = claimerOrganizations.find(
+    (organization) => organization.id === selectedAnalyticsOrgId,
+  );
+
+  const analyticsProjects = useMemo(() => {
+    if (!selectedAnalyticsOrgId) return [];
+
+    const projectMap = new Map<
+      string,
+      VestingProject & { logo_url: string | null; scheduleCount: number }
+    >();
+
+    schedules.forEach((schedule) => {
+      const project = getScheduleProject(schedule);
+      if (!project || project.organization_id !== selectedAnalyticsOrgId) return;
+
+      const current = projectMap.get(project.id);
+      projectMap.set(project.id, {
+        ...project,
+        logo_url: getProjectOrganization(project)?.logo_url ?? null,
+        scheduleCount: (current?.scheduleCount ?? 0) + 1,
+      });
+    });
+
+    return Array.from(projectMap.values());
+  }, [schedules, selectedAnalyticsOrgId]);
+
+  const getProjectMark = (project: Pick<VestingProject, "project_name" | "token_symbol">) => {
+    if (project.token_symbol) return project.token_symbol.slice(0, 3).toUpperCase();
+    return project.project_name
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase();
+  };
 
   const calculateVested = (schedule: VestingSchedule) => {
     const now = new Date();
@@ -237,6 +332,35 @@ export function ClaimPage() {
             </p>
             <WalletMultiButton />
           </div>
+        ) : authLoading ? (
+          <div className="flex items-center justify-center py-20 text-muted-foreground gap-3">
+            <div className="w-5 h-5 border-2 border-[hsl(var(--primary))] border-t-transparent rounded-full animate-spin" />
+            Checking wallet sign-in...
+          </div>
+        ) : !isSignedInForConnectedWallet ? (
+          <div className="glass-card rounded-2xl p-12 text-center border border-[hsl(271_100%_64%/0.2)]">
+            <div className="w-20 h-20 rounded-2xl bg-[hsl(271_100%_64%/0.1)] border border-[hsl(271_100%_64%/0.2)] flex items-center justify-center mx-auto mb-6">
+              <Wallet className="w-10 h-10 text-[hsl(var(--primary))]" />
+            </div>
+            <h2 className="font-display text-xl font-bold text-foreground mb-2">
+              Verify This Wallet
+            </h2>
+            <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
+              Sign a message with the connected Solana wallet before private vesting
+              schedules are shown.
+            </p>
+            {authError && (
+              <p className="mb-4 text-sm text-[hsl(0_84%_70%)]">{authError}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => void signInWithConnectedWallet()}
+              disabled={signingIn}
+              className="rounded-xl border border-[hsl(var(--primary)/0.4)] bg-[hsl(var(--primary)/0.15)] px-5 py-3 text-sm font-bold text-foreground transition hover:bg-[hsl(var(--primary)/0.24)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {signingIn ? "Waiting for signature..." : "Sign in with Solana"}
+            </button>
+          </div>
         ) : loading ? (
           <div className="flex items-center justify-center py-20 text-muted-foreground gap-3">
             <div className="w-5 h-5 border-2 border-[hsl(var(--primary))] border-t-transparent rounded-full animate-spin" />
@@ -258,6 +382,114 @@ export function ClaimPage() {
             </p>
           </div>
         ) : (
+          <>
+        {publicKey && schedules.length > 0 && (
+          <div className="glass-card mb-4 rounded-2xl border border-[hsl(265_40%_20%/0.5)] p-5">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-[hsl(271_100%_64%/0.25)] bg-[hsl(271_100%_64%/0.08)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-[hsl(var(--primary))]">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  Claimer Analytics
+                </p>
+                <h2 className="font-display text-xl font-bold text-foreground">
+                  Your project analytics
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Select an organization, then open analytics for a project where your vesting schedule is active.
+                </p>
+              </div>
+              {selectedAnalyticsOrgId && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedAnalyticsOrgId(null)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-[hsl(265_40%_24%)] px-4 py-2 text-sm font-bold text-foreground transition hover:border-[hsl(var(--primary))]"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Organizations
+                </button>
+              )}
+            </div>
+
+            {!selectedAnalyticsOrgId ? (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {claimerOrganizations.map((organization) => (
+                  <button
+                    key={organization.id}
+                    type="button"
+                    onClick={() => setSelectedAnalyticsOrgId(organization.id)}
+                    className="group flex flex-col items-center gap-3 rounded-2xl border border-transparent p-3 text-center transition hover:border-[hsl(var(--primary)/0.38)] hover:bg-[hsl(265_40%_16%/0.58)]"
+                  >
+                    <span className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-[hsl(var(--primary)/0.34)] bg-[hsl(265_40%_14%/0.92)] font-display text-lg font-black text-foreground transition group-hover:scale-105">
+                      <span className="absolute inset-0 bg-linear-to-br from-[hsl(var(--primary)/0.28)] to-[hsl(var(--accent)/0.18)]" />
+                      <span className="relative">
+                        {organization.name
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((part) => part[0])
+                          .join("")
+                          .toUpperCase()}
+                      </span>
+                      {organization.logo_url ? (
+                        <img
+                          src={organization.logo_url}
+                          alt={`${organization.name} logo`}
+                          className="absolute inset-0 h-full w-full object-cover"
+                          loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                    </span>
+                    <span className="line-clamp-2 text-sm font-bold text-foreground">
+                      {organization.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div>
+                <p className="mb-3 text-sm font-semibold text-foreground">
+                  {selectedAnalyticsOrganization?.name || "Selected organization"}
+                </p>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {analyticsProjects.map((project) => (
+                    <button
+                      key={project.id}
+                      type="button"
+                      onClick={() => {
+                        window.location.href = `/claim/analytics/project/${project.id}`;
+                      }}
+                      className="group flex flex-col items-center gap-3 rounded-2xl border border-transparent p-3 text-center transition hover:border-[hsl(var(--accent)/0.38)] hover:bg-[hsl(265_40%_16%/0.58)]"
+                    >
+                      <span className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-[hsl(var(--accent)/0.34)] bg-[hsl(265_40%_14%/0.92)] font-display text-base font-black text-foreground transition group-hover:scale-105">
+                        <span className="absolute inset-0 bg-linear-to-br from-[hsl(var(--primary)/0.25)] to-[hsl(var(--accent)/0.2)]" />
+                        <span className="relative">{getProjectMark(project)}</span>
+                        {project.logo_url ? (
+                          <img
+                            src={project.logo_url}
+                            alt={`${project.project_name} logo`}
+                            className="absolute inset-0 h-full w-full object-cover"
+                            loading="lazy"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : null}
+                      </span>
+                      <span className="line-clamp-2 text-sm font-bold text-foreground">
+                        {project.project_name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {project.scheduleCount} active schedule{project.scheduleCount === 1 ? "" : "s"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
           <div className="space-y-4" data-claim-guide="schedule-list">
             {schedules.map((schedule, index) => {
               const vested = calculateVested(schedule);
@@ -281,7 +513,7 @@ export function ClaimPage() {
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h2 className="font-display text-lg font-semibold text-foreground mb-1">
-                        {schedule.vesting_projects?.project_name}
+                        {getScheduleProject(schedule)?.project_name}
                       </h2>
                       <p className="text-muted-foreground text-sm">
                         {schedule.schedule_type} vesting • Started{" "}
@@ -306,7 +538,7 @@ export function ClaimPage() {
                           {item.label}
                         </div>
                         <div className="font-bold">
-                          {item.value} {schedule.vesting_projects?.token_symbol}
+                          {item.value} {getScheduleProject(schedule)?.token_symbol}
                         </div>
                       </div>
                     ))}
@@ -368,7 +600,7 @@ export function ClaimPage() {
                       : !claimsEnabled
                         ? "Claiming temporarily disabled"
                         : claimable > 0
-                          ? `Claim ${claimable} ${schedule.vesting_projects?.token_symbol}`
+                          ? `Claim ${claimable} ${getScheduleProject(schedule)?.token_symbol}`
                           : claimed >= schedule.total_amount
                             ? "Fully claimed"
                             : "Nothing to claim"}
@@ -393,9 +625,10 @@ export function ClaimPage() {
               );
             })}
           </div>
+          </>
         )}
       </div>
-      <ClaimOnboardingGuide walletAddress={publicKey?.toBase58() ?? null} />
+      <ClaimOnboardingGuide walletAddress={walletAddress} />
     </div>
   );
 }
