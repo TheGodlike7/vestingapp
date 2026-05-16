@@ -42,7 +42,7 @@ export function ResetPasswordPage() {
               <Zap className="absolute inset-0 m-auto w-5 h-5 text-white" />
             </div>
             <span className="font-display font-bold text-2xl tracking-tight text-foreground">
-              Vesting<span className="gradient-text">App</span>
+              Har<span className="gradient-text">vest</span>
             </span>
           </a>
           <div className="w-12 h-12 rounded-2xl bg-[hsl(271_100%_64%/0.1)] border border-[hsl(271_100%_64%/0.2)] flex items-center justify-center mb-3">

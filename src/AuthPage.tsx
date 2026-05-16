@@ -65,7 +65,7 @@ export function AuthPage() {
               <Zap className="absolute inset-0 m-auto w-5 h-5 text-white" />
             </div>
             <span className="font-display font-bold text-2xl tracking-tight text-foreground">
-              Vesting<span className="gradient-text">App</span>
+              Har<span className="gradient-text">vest</span>
             </span>
           </a>
           <h2 className="font-display text-xl font-semibold text-foreground">

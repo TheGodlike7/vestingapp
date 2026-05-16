@@ -246,7 +246,7 @@ export function SuperAdmin() {
               <Zap className="absolute inset-0 m-auto w-4 h-4 text-white" />
             </div>
             <span className="font-display font-bold text-lg text-foreground">
-              Vesting<span className="gradient-text">App</span>
+              Har<span className="gradient-text">vest</span>
             </span>
           </a>
           <div className="flex items-center gap-3">

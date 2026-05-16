@@ -233,7 +233,7 @@ export default function AnalyticsProjectPage() {
                 <Zap className="absolute inset-0 m-auto h-3.5 w-3.5 text-white" />
               </div>
               <span className="hidden font-display text-lg font-bold text-foreground sm:block">
-                Vesting<span className="gradient-text">App</span>
+                Har<span className="gradient-text">vest</span>
               </span>
             </a>
           </div>

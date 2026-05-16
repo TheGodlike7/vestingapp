@@ -4,7 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../supabase.ts";
 
 const CLAIM_SIGN_IN_STATEMENT =
-  "Sign in to VestingApp to view schedules assigned to this wallet.";
+  "Sign in to Harvest to view schedules assigned to this wallet.";
 
 function getWeb3WalletAddresses(session: Session | null): string[] {
   const identityWallets = (session?.user.identities ?? [])

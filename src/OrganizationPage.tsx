@@ -211,7 +211,7 @@ function OrganizationPageContent() {
               <Zap className="absolute inset-0 m-auto h-4 w-4 text-white" />
             </div>
             <span className="font-display text-lg font-bold text-foreground">
-              Vesting<span className="gradient-text">App</span>
+              Har<span className="gradient-text">vest</span>
             </span>
           </a>
 

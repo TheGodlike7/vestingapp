@@ -104,7 +104,7 @@ export function ProjectPage() {
                 <Zap className="absolute inset-0 m-auto w-3.5 h-3.5 text-white" />
               </div>
               <span className="font-display font-bold text-lg text-foreground hidden sm:block">
-                Vesting<span className="gradient-text">App</span>
+                Har<span className="gradient-text">vest</span>
               </span>
             </a>
           </div>

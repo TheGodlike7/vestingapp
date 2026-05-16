@@ -111,7 +111,7 @@ export default function ClaimerVestingsPage({
         className="bg-white w-[70%] max-h-[80%] overflow-y-auto p-6 rounded-xl shadow-2xl"
         onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}      
       >
-            <h2>Vesting Details</h2>
+            <h2>Harvesting Details</h2>
 
             <p>Total: {selected.total_amount}</p>
             <p>Claimed: {selected.claimed_amount ?? 0}</p>
