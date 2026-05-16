@@ -29,7 +29,7 @@ export default function Navbar() {
             <Zap className="absolute inset-0 m-auto w-4 h-4 text-white" />
           </div>
           <span className="font-display font-bold text-xl tracking-tight text-foreground">
-            Vesting<span className="gradient-text">App</span>
+            Har<span className="gradient-text">vest</span>
           </span>
         </a>
         <ul className="hidden lg:flex items-stretch gap-1">
