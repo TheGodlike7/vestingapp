@@ -13,7 +13,7 @@ export default function CtaSection() {
             <span className="text-xs font-semibold text-[hsl(var(--primary))] uppercase tracking-widest">Launch Today</span>
           </div>
           <h2 className="font-display text-5xl md:text-6xl font-extrabold text-foreground mb-6 tracking-tight leading-tight">
-            Ready to vest on Solana?
+            Ready to harvest on Solana?
           </h2>
           <p className="text-muted-foreground text-lg font-body leading-relaxed mb-12">
             Join protocols already using Harvest to manage their locked tokens.

@@ -50,9 +50,9 @@ const VIEWPORT_GAP = 18;
 const claimGuideSteps: ClaimGuideStep[] = [
   {
     id: "welcome",
-    kicker: "Claim briefing",
-    title: "Welcome to the claim portal",
-    body: "This is the recipient path: connect your wallet, review active vesting schedules, and claim what has unlocked.",
+    kicker: "Harvest briefing",
+    title: "Welcome to the harvest portal",
+    body: "This is the recipient path: connect your wallet, review active vesting schedules, and harvest what has unlocked.",
     icon: Rocket,
   },
   {
@@ -82,8 +82,8 @@ const claimGuideSteps: ClaimGuideStep[] = [
   {
     id: "claim",
     kicker: "Step 4",
-    title: "Claim with one signed action",
-    body: "When tokens are claimable, this action opens the wallet approval flow and records the successful claim afterward.",
+    title: "Harvest with one signed action",
+    body: "When tokens are harvestable, this action opens the wallet approval flow and records the successful harvest afterward.",
     selectors: ['[data-claim-guide="claim-action"]', '[data-claim-guide="schedule-list"]'],
     icon: CheckCircle2,
   },

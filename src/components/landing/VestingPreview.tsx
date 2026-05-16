@@ -59,7 +59,7 @@ export default function VestingPreview() {
               <span className="gradient-text">every schedule</span>
             </h2>
             <p className="text-muted-foreground text-base md:text-lg font-body leading-relaxed mb-10">
-              Monitor all active vesting contracts from a single control plane. Know exactly what's vested, what's claimable, and what's locked—in real time.
+              Monitor all active vesting contracts from a single control plane. Know exactly what's vested, what's harvestable, and what's locked—in real time.
             </p>
             {[
               { icon: TrendingUp, text: "Interactive unlock charts with historical data" },

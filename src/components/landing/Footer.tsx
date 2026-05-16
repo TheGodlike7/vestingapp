@@ -23,7 +23,7 @@ export default function Footer() {
                 <Zap className="absolute inset-0 m-auto w-4 h-4 text-white" />
               </div>
               <span className="font-display font-bold text-xl text-foreground">
-                Vesting<span className="gradient-text">App</span>
+                Har<span className="gradient-text">vesting</span>
               </span>
             </a>
             <p className="text-muted-foreground text-sm font-body leading-relaxed max-w-55">
@@ -56,7 +56,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-[hsl(265_40%_18%/0.4)] pt-8 flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-muted-foreground text-xs font-body">
-            © 2025 Harvest. All rights reserved. Built on{" "}
+            © 2026 Harvest. All rights reserved. Built on{" "}
             <span className="text-[hsl(var(--accent))]">Solana</span>.
           </p>
           <div className="flex items-center gap-1.5 text-muted-foreground text-xs">

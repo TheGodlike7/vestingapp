@@ -6,6 +6,7 @@ const features = [
   "All 4 vesting templates (Advisor, Employee, Investor, Custom)",
   "Recipient self-serve claim portal",
   "Real-time vesting dashboard",
+  "Automated unlock & claim notifications",
   "Solana devnet & mainnet support",
   "Email support (48hr response)",
   "No percentage cut on tokens",

@@ -56,7 +56,7 @@ export default function HeroSection() {
         </h1>
 
         <p className="text-muted-foreground text-lg md:text-[1xl] max-w-2xl mx-auto leading-relaxed mb-10 animate-fade-up animation-delay-300 font-body">
-          Deploy bulletproof token vesting schedules on Solana in minutes. Trusted by leading DAOs, launchpads, and protocols worldwide.
+          Deploy and manage bulletproof token vesting schedules on Solana in minutes. Trusted by leading DAOs, launchpads, and protocols worldwide.
         </p>
 
         <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16 animate-fade-up animation-delay-400">
