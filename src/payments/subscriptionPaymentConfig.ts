@@ -21,6 +21,7 @@ function amountForNetwork(network: SubscriptionNetwork): number {
 
 const networkLabel = readNetwork()
 const CLAIMS_HAVE_SECURE_ONCHAIN_PATH = false
+const PRIMARY_SUBSCRIPTION_WALLET_KEYWORDS = ['phantom', 'solflare'] as const
 
 export const SUBSCRIPTION_PAYMENT_CONFIG: SubscriptionPaymentConfig = {
   allowedWalletKeywords: ['phantom', 'solflare', 'metamask', 'binance', 'okx', 'jupiter'],
@@ -37,6 +38,12 @@ export function isAllowedSubscriptionWallet(name?: string): boolean {
   if (!name) return false
   const normalized = name.toLowerCase()
   return SUBSCRIPTION_PAYMENT_CONFIG.allowedWalletKeywords.some((keyword) => normalized.includes(keyword))
+}
+
+export function isPrimarySubscriptionWallet(name?: string): boolean {
+  if (!name) return false
+  const normalized = name.toLowerCase()
+  return PRIMARY_SUBSCRIPTION_WALLET_KEYWORDS.some((keyword) => normalized.includes(keyword))
 }
 
 export function formatUsdc(amount: number): string {

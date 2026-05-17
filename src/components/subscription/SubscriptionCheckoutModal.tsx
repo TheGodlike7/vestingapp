@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { ArrowLeft, CreditCard, Loader2, LockKeyhole, ShieldCheck, WalletCards } from 'lucide-react'
 import type { WalletName } from '@solana/wallet-adapter-base'
 import {
@@ -8,7 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { PaymentTab, WalletOption } from '@/payments/subscriptionPaymentTypes'
-import { formatUsdc } from '@/payments/subscriptionPaymentConfig'
+import { formatUsdc, isPrimarySubscriptionWallet } from '@/payments/subscriptionPaymentConfig'
 
 function WalletBrandIcon({ icon, label }: { icon: string; label: string }) {
   if (icon) {
@@ -26,6 +27,37 @@ function WalletBrandIcon({ icon, label }: { icon: string; label: string }) {
     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[hsl(265_44%_20%)] text-xs font-bold text-foreground">
       {label.slice(0, 1).toUpperCase()}
     </span>
+  )
+}
+
+function WalletOptionButton({
+  walletOption,
+  loading,
+  onSelectWallet,
+}: {
+  walletOption: WalletOption
+  loading: boolean
+  onSelectWallet: (walletName: WalletName) => void
+}) {
+  return (
+    <button
+      onClick={() => onSelectWallet(walletOption.name)}
+      disabled={loading || !walletOption.usable}
+      className={`flex items-center justify-between rounded-lg border px-3 py-3 text-left text-sm transition ${
+        walletOption.selected
+          ? 'border-[hsl(var(--accent))] bg-[hsl(157_87%_51%/0.08)]'
+          : 'border-[hsl(265_40%_22%)] bg-[hsl(265_30%_15%)] hover:border-[hsl(var(--primary))]'
+      } disabled:cursor-not-allowed disabled:opacity-50`}
+      type="button"
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <WalletBrandIcon icon={walletOption.icon} label={walletOption.label} />
+        <span className="truncate font-medium">{walletOption.label}</span>
+      </span>
+      <span className="shrink-0 text-xs text-muted-foreground">
+        {walletOption.connected && walletOption.selected ? 'Connected' : walletOption.readyState}
+      </span>
+    </button>
   )
 }
 
@@ -81,19 +113,33 @@ export function SubscriptionCheckoutModal({
   onPayWithUSDC,
 }: SubscriptionCheckoutModalProps) {
   const paymentDisabled = loading || !selectedWalletAllowed || !businessWalletConfigured
+  const [showOtherWallets, setShowOtherWallets] = useState(false)
+  const primaryWalletOptions = useMemo(
+    () => walletOptions.filter((walletOption) => isPrimarySubscriptionWallet(walletOption.label)),
+    [walletOptions],
+  )
+  const otherWalletOptions = useMemo(
+    () => walletOptions.filter((walletOption) => !isPrimarySubscriptionWallet(walletOption.label)),
+    [walletOptions],
+  )
+
+  const handleClose = () => {
+    setShowOtherWallets(false)
+    onClose()
+  }
 
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose()
+        if (!nextOpen) handleClose()
       }}
     >
       <DialogContent className="max-w-xl border-[hsl(265_40%_24%)] bg-[hsl(265_35%_8%)] p-0 text-foreground shadow-2xl">
         <div className="border-b border-[hsl(265_40%_18%)] px-6 py-5">
           <div className="flex items-center gap-3">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               disabled={loading}
               className="flex h-9 w-9 items-center justify-center rounded-lg bg-[hsl(265_30%_16%)] text-muted-foreground hover:text-foreground disabled:opacity-50"
               title="Back to subscription"
@@ -128,41 +174,55 @@ export function SubscriptionCheckoutModal({
                 <div>
                   <h3 className="font-semibold text-foreground">Connect a subscription wallet</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Phantom, Solflare, MetaMask, Binance, OKX, and Jupiter wallet names are accepted.
+                    Phantom and Solflare stay upfront. Other Wallets reveals compatible modern wallets detected in this browser.
                   </p>
                 </div>
                 <ShieldCheck className="h-5 w-5 shrink-0 text-[hsl(var(--accent))]" />
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {walletOptions.length > 0 ? (
-                  walletOptions.map((walletOption) => (
-                    <button
-                      key={walletOption.label}
-                      onClick={() => onSelectWallet(walletOption.name)}
-                      disabled={loading || !walletOption.usable}
-                      className={`flex items-center justify-between rounded-lg border px-3 py-3 text-left text-sm transition ${
-                        walletOption.selected
-                          ? 'border-[hsl(var(--accent))] bg-[hsl(157_87%_51%/0.08)]'
-                          : 'border-[hsl(265_40%_22%)] bg-[hsl(265_30%_15%)] hover:border-[hsl(var(--primary))]'
-                      } disabled:cursor-not-allowed disabled:opacity-50`}
-                      type="button"
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <WalletBrandIcon icon={walletOption.icon} label={walletOption.label} />
-                        <span className="truncate font-medium">{walletOption.label}</span>
-                      </span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {walletOption.connected && walletOption.selected ? 'Connected' : walletOption.readyState}
-                      </span>
-                    </button>
-                  ))
-                ) : (
-                  <div className="sm:col-span-2 rounded-lg border border-dashed border-[hsl(265_40%_24%)] p-4 text-sm text-muted-foreground">
-                    No allowed wallet extension was detected in this browser.
-                  </div>
-                )}
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                {primaryWalletOptions.map((walletOption) => (
+                  <WalletOptionButton
+                    key={walletOption.label}
+                    walletOption={walletOption}
+                    loading={loading}
+                    onSelectWallet={onSelectWallet}
+                  />
+                ))}
+
+                <button
+                  onClick={() => setShowOtherWallets((current) => !current)}
+                  className="flex items-center justify-between rounded-lg border border-[hsl(265_40%_22%)] bg-[hsl(265_30%_15%)] px-3 py-3 text-left text-sm transition hover:border-[hsl(var(--primary))]"
+                  type="button"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <WalletBrandIcon icon="" label="Other Wallets" />
+                    <span className="truncate font-medium">Other Wallets</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {showOtherWallets ? 'Hide' : otherWalletOptions.length > 0 ? `${otherWalletOptions.length} detected` : 'View'}
+                  </span>
+                </button>
               </div>
+
+              {showOtherWallets && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {otherWalletOptions.length > 0 ? (
+                    otherWalletOptions.map((walletOption) => (
+                      <WalletOptionButton
+                        key={walletOption.label}
+                        walletOption={walletOption}
+                        loading={loading}
+                        onSelectWallet={onSelectWallet}
+                      />
+                    ))
+                  ) : (
+                  <div className="sm:col-span-2 rounded-lg border border-dashed border-[hsl(265_40%_24%)] p-4 text-sm text-muted-foreground">
+                    No other supported Wallet Standard wallet was detected in this browser.
+                  </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl border border-[hsl(265_40%_20%)] bg-[hsl(265_30%_12%/0.9)] p-4">

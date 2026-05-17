@@ -1,5 +1,5 @@
 import { Buffer } from "buffer"
-window.Buffer = Buffer
+(window as typeof window & { Buffer: typeof Buffer }).Buffer = Buffer
 import Index from './pages/Index.tsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

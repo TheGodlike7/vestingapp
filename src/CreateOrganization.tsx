@@ -14,7 +14,10 @@ import {
   WalletCards,
 } from "lucide-react";
 import { supabase } from "@/supabase";
-import { isAllowedSubscriptionWallet } from "@/payments/subscriptionPaymentConfig";
+import {
+  isAllowedSubscriptionWallet,
+  isPrimarySubscriptionWallet,
+} from "@/payments/subscriptionPaymentConfig";
 
 export type OrganizationType = "dao" | "company";
 export type KybStatus =
@@ -254,10 +257,19 @@ export default function CreateOrganization({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [pendingWalletName, setPendingWalletName] = useState<string | null>(null);
+  const [showOtherWallets, setShowOtherWallets] = useState(false);
 
   const allowedWallets = useMemo(
     () => wallets.filter(({ adapter }) => isAllowedSubscriptionWallet(adapter.name)),
     [wallets],
+  );
+  const primaryWallets = useMemo(
+    () => allowedWallets.filter(({ adapter }) => isPrimarySubscriptionWallet(adapter.name)),
+    [allowedWallets],
+  );
+  const otherWallets = useMemo(
+    () => allowedWallets.filter(({ adapter }) => !isPrimarySubscriptionWallet(adapter.name)),
+    [allowedWallets],
   );
 
   const activeWallet = publicKey?.toBase58() ?? "";
@@ -469,9 +481,51 @@ export default function CreateOrganization({
             Step 1: Connect the organization owner wallet
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            {allowedWallets.length > 0 ? (
-              allowedWallets.map(({ adapter, readyState }) => {
+          <p className="mb-3 text-sm text-muted-foreground">
+            Phantom and Solflare stay one tap away. Other Wallets reveals compatible modern wallets detected in this browser.
+          </p>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {primaryWallets.map(({ adapter, readyState }) => {
+              const usable = readyState === WalletReadyState.Installed || readyState === WalletReadyState.Loadable;
+              return (
+                <button
+                  key={adapter.name}
+                  type="button"
+                  onClick={() => handleSelectWallet(adapter.name)}
+                  disabled={!usable || connecting}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[hsl(265_40%_22%)] bg-[hsl(265_30%_15%)] px-3 py-3 text-left text-sm transition hover:border-[hsl(var(--primary))] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-foreground">
+                    <WalletBrandIcon icon={adapter.icon} label={adapter.name} />
+                    <span className="truncate font-medium">{adapter.name}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {connecting && pendingWalletName === adapter.name ? "Connecting" : readyState}
+                  </span>
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => setShowOtherWallets((current) => !current)}
+              className="flex items-center justify-between gap-3 rounded-lg border border-[hsl(265_40%_22%)] bg-[hsl(265_30%_15%)] px-3 py-3 text-left text-sm transition hover:border-[hsl(var(--primary))]"
+            >
+              <span className="flex min-w-0 items-center gap-2 text-foreground">
+                <WalletBrandIcon icon="" label="Other Wallets" />
+                <span className="truncate font-medium">Other Wallets</span>
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {showOtherWallets ? "Hide" : otherWallets.length > 0 ? `${otherWallets.length} detected` : "View"}
+              </span>
+            </button>
+          </div>
+
+          {showOtherWallets && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {otherWallets.length > 0 ? (
+                otherWallets.map(({ adapter, readyState }) => {
                 const usable = readyState === WalletReadyState.Installed || readyState === WalletReadyState.Loadable;
                 return (
                   <button
@@ -493,10 +547,11 @@ export default function CreateOrganization({
               })
             ) : (
               <div className="sm:col-span-2 rounded-lg border border-dashed border-[hsl(265_40%_24%)] p-4 text-sm text-muted-foreground">
-                No supported wallet extension was detected in this browser.
+                No other supported Wallet Standard wallet was detected in this browser.
               </div>
             )}
-          </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="mt-5 rounded-xl border border-[hsl(157_87%_51%/0.24)] bg-[hsl(157_87%_51%/0.08)] px-4 py-3 text-sm text-[hsl(var(--accent))]">
