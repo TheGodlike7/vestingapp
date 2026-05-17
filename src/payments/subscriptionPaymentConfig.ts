@@ -24,7 +24,22 @@ const CLAIMS_HAVE_SECURE_ONCHAIN_PATH = false
 const PRIMARY_SUBSCRIPTION_WALLET_KEYWORDS = ['phantom', 'solflare'] as const
 
 export const SUBSCRIPTION_PAYMENT_CONFIG: SubscriptionPaymentConfig = {
-  allowedWalletKeywords: ['phantom', 'solflare', 'metamask', 'binance', 'okx', 'jupiter'],
+  allowedWalletKeywords: [
+    'phantom',
+    'solflare',
+    'coinbase',
+    'jupiter',
+    'binance',
+    'backpack',
+    'okx',
+    'keystone',
+    'ledger',
+    'neko',
+    'onto',
+    'particle',
+    'salmon',
+    'walletconnect',
+  ],
   businessWallet: import.meta.env.VITE_BUSINESS_WALLET as string | undefined,
   usdcMint: import.meta.env.VITE_USDC_MINT ?? 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
   priceLabel: import.meta.env.VITE_SUBSCRIPTION_PRICE_LABEL ?? '$99',
