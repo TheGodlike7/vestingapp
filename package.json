@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "dependencies": {
     "@bonfida/token-vesting": "^0.0.9",
     "@fontsource-variable/geist": "^5.2.8",
